@@ -1,34 +1,75 @@
+import type { DocumentSession } from '../features/document/ui/useDocumentLifecycle'
+import { useDocumentLifecycle } from '../features/document/ui/useDocumentLifecycle'
 import { ThemeToggle } from '../features/theme/ThemeToggle'
 import { useTheme } from '../features/theme/useTheme'
+import { MarkdownWorkspace } from '../features/workspace/MarkdownWorkspace'
 import { SkipLink } from '../shared/components/SkipLink'
 
 export function AppShell() {
-  const { theme, toggleTheme } = useTheme()
+	const { theme, toggleTheme } = useTheme()
+	const documentSession = useDocumentLifecycle()
+	const documentStatistics = getDocumentStatistics(documentSession.document?.content ?? '')
 
-  return (
-    <div className="app-shell" data-theme={theme}>
-      <SkipLink targetId="main-content" />
-      <header className="app-header">
-        <a className="wordmark" href="/" aria-label="Markdown Toolkit home">
-          Markdown Toolkit
-        </a>
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
-      </header>
+	return (
+		<div className="app-shell" data-theme={theme}>
+			<SkipLink targetId="main-content" />
+			<div className="app-toolbar" role="banner">
+				<div role="toolbar" aria-label="Workspace controls">
+					<ThemeToggle theme={theme} onToggle={toggleTheme} />
+				</div>
+			</div>
 
-      <main className="app-main" id="main-content" tabIndex={-1}>
-        <section className="workspace-intro" aria-labelledby="workspace-title">
-          <p className="eyebrow">Local-first Markdown workspace</p>
-          <h1 id="workspace-title">A focused place for your writing.</h1>
-          <p className="workspace-description">
-            The editor and preview experience is being prepared.
-          </p>
-        </section>
-      </main>
+			<main className="app-main" id="main-content" tabIndex={-1}>
+				{documentSession.document ? (
+					<MarkdownWorkspace
+						content={documentSession.document.content}
+						onContentChange={documentSession.updateContent}
+					/>
+				) : (
+					<section className="workspace-loading" aria-live="polite" aria-busy="true">
+						<p>{getDocumentStatusMessage(documentSession)}</p>
+					</section>
+				)}
+			</main>
 
-      <footer className="app-footer">
-        <p>Private by default. Your work will stay in this browser.</p>
-        <p aria-live="polite">Foundation ready</p>
-      </footer>
-    </div>
-  )
+			<footer className="app-footer">
+				{documentSession.document ? (
+					<p>
+						{documentStatistics.words} words · {documentStatistics.characters}{' '}
+						characters
+					</p>
+				) : null}
+				<p role="status">{getDocumentStatusMessage(documentSession)}</p>
+			</footer>
+		</div>
+	)
+}
+
+function getDocumentStatistics(content: string): { words: number; characters: number } {
+	const trimmedContent = content.trim()
+
+	return {
+		words: trimmedContent ? trimmedContent.split(/\s+/).length : 0,
+		characters: content.length,
+	}
+}
+
+function getDocumentStatusMessage({ status }: DocumentSession): string {
+	if (status === 'loading') {
+		return 'Loading document…'
+	}
+
+	if (status === 'error') {
+		return 'Save failed'
+	}
+
+	if (status === 'saving') {
+		return 'Saving…'
+	}
+
+	if (status === 'dirty') {
+		return 'Unsaved'
+	}
+
+	return status === 'saved' ? 'Saved' : 'Ready'
 }
