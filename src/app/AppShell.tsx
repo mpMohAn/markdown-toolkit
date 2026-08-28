@@ -1,21 +1,50 @@
+import type { EditorView } from '@codemirror/view'
+import { useCallback, useMemo, useState } from 'react'
 import type { DocumentSession } from '../features/document/ui/useDocumentLifecycle'
 import { useDocumentLifecycle } from '../features/document/ui/useDocumentLifecycle'
+import { EditorToolbar } from '../features/editor/EditorToolbar'
+import { DocumentActions } from '../features/export/DocumentActions'
 import { ThemeToggle } from '../features/theme/ThemeToggle'
 import { useTheme } from '../features/theme/useTheme'
 import { MarkdownWorkspace } from '../features/workspace/MarkdownWorkspace'
+import { readLineNumbers, writeLineNumbers } from '../features/workspace/workspacePreferences'
 import { SkipLink } from '../shared/components/SkipLink'
 
 export function AppShell() {
 	const { theme, toggleTheme } = useTheme()
 	const documentSession = useDocumentLifecycle()
-	const documentStatistics = getDocumentStatistics(documentSession.document?.content ?? '')
+	const [editorView, setEditorView] = useState<EditorView | null>(null)
+	const [showLineNumbers, setShowLineNumbers] = useState(readLineNumbers)
+	const handleEditorReady = useCallback((view: EditorView | null) => setEditorView(view), [])
+	const toggleLineNumbers = useCallback(() => {
+		setShowLineNumbers((currentValue) => {
+			const nextValue = !currentValue
+			writeLineNumbers(nextValue)
+			return nextValue
+		})
+	}, [])
+	const documentContent = documentSession.document?.content ?? ''
+	const documentStatistics = useMemo(
+		() => getDocumentStatistics(documentContent),
+		[documentContent],
+	)
 
 	return (
 		<div className="app-shell" data-theme={theme}>
 			<SkipLink targetId="main-content" />
 			<div className="app-toolbar" role="banner">
-				<div role="toolbar" aria-label="Workspace controls">
-					<ThemeToggle theme={theme} onToggle={toggleTheme} />
+				<div className="toolbar-content" role="toolbar" aria-label="Markdown tools">
+					<EditorToolbar
+						editorView={editorView}
+						showLineNumbers={showLineNumbers}
+						onToggleLineNumbers={toggleLineNumbers}
+					/>
+					{documentSession.document ? (
+						<DocumentActions content={documentSession.document.content} />
+					) : null}
+					<div className="workspace-controls">
+						<ThemeToggle theme={theme} onToggle={toggleTheme} />
+					</div>
 				</div>
 			</div>
 
@@ -24,6 +53,8 @@ export function AppShell() {
 					<MarkdownWorkspace
 						content={documentSession.document.content}
 						onContentChange={documentSession.updateContent}
+						onEditorReady={handleEditorReady}
+						showLineNumbers={showLineNumbers}
 					/>
 				) : (
 					<section className="workspace-loading" aria-live="polite" aria-busy="true">
@@ -35,8 +66,7 @@ export function AppShell() {
 			<footer className="app-footer">
 				{documentSession.document ? (
 					<p>
-						{documentStatistics.words} words · {documentStatistics.characters}{' '}
-						characters
+						{documentStatistics.words} words · {documentStatistics.characters} chars
 					</p>
 				) : null}
 				<p role="status">{getDocumentStatusMessage(documentSession)}</p>

@@ -14,6 +14,7 @@ export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
 			type="button"
 			aria-pressed={isDark}
 			aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
+			title={`Switch to ${isDark ? 'light' : 'dark'} theme`}
 			onClick={onToggle}
 		>
 			<span aria-hidden="true">{isDark ? '☀' : '◐'}</span>

@@ -46,6 +46,25 @@ describe('DocumentLifecycle', () => {
 		expect(lifecycle.getState().status).toBe('saved')
 	})
 
+	it('coalesces continuous editing into one autosave write', async () => {
+		vi.useFakeTimers()
+		const repository = new MemoryDocumentRepository([createDocument()])
+		const lifecycle = new DocumentLifecycle({ repository })
+		await lifecycle.hydrate()
+
+		lifecycle.updateContent('First')
+		await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS - 1)
+		lifecycle.updateContent('Second')
+		await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS - 1)
+
+		expect(repository.savedDocuments).toHaveLength(0)
+
+		await vi.advanceTimersByTimeAsync(1)
+
+		expect(repository.savedDocuments).toHaveLength(1)
+		expect(repository.savedDocuments[0]?.content).toBe('Second')
+	})
+
 	it('does not report saved when persistence fails', async () => {
 		vi.useFakeTimers()
 		const repository = new MemoryDocumentRepository([createDocument()])

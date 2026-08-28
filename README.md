@@ -1,18 +1,48 @@
 # Markdown Toolkit
 
-A local-first Markdown workspace for developers. The first milestone establishes the React/TypeScript foundation, design tokens, responsive application shell, theming, accessibility primitives, and test tooling.
+A compact, local-first Markdown editor with a live sanitized preview. Markdown Toolkit runs in the browser and keeps document storage on the device.
 
-## Commands
+## Features
 
-- `npm run dev` — start the local development server
-- `npm run build` — type-check and produce a production build
-- `npm run lint` — run static linting
-- `npm run format:check` — verify formatting
-- `npm run format` — apply formatting
-- `npm test` — run the test suite once
+- Markdown editor powered by CodeMirror
+- Live sanitized GitHub Flavored Markdown preview
+- Browser-only, local-first persistence with autosave
+- Compact formatting toolbar and keyboard shortcuts
+- Resizable editor and preview panes
+- Light and dark themes
+- Optional editor line numbers
+- Copy exact Markdown or sanitized HTML
+- Download Markdown or a standalone HTML document
 
-## Architecture
+## Privacy
 
-`src/app` contains application composition. Feature folders own vertical slices of functionality. `src/shared` contains only cross-feature UI and styling foundations. Domain logic should remain framework-independent where practical; upcoming document state, rendering, and persistence modules will not depend on React.
+Document content stays in browser storage. Markdown Toolkit requires no account and does not use a backend for document storage.
 
-V1 exposes a single document. A later persistence repository will be designed for multiple documents without prematurely adding document-management UI.
+Remote images referenced by a Markdown document may still cause the browser to make network requests to those image hosts when the preview is rendered.
+
+## Development
+
+Install dependencies and start the development server:
+
+```sh
+npm install
+npm run dev
+```
+
+Available validation commands:
+
+```sh
+npm run build
+npm test
+npm run lint
+npm run format:check
+```
+
+## Tech stack
+
+- React
+- TypeScript
+- Vite
+- CodeMirror
+- remark/rehype ecosystem
+- IndexedDB

@@ -33,6 +33,12 @@ describe('MarkdownWorkspace', () => {
 		const divider = screen.getByRole('separator', { name: 'Resize editor and preview' })
 
 		expect(divider).toHaveAttribute('aria-valuenow', '50')
+		expect(divider).toHaveAttribute('aria-orientation', 'vertical')
+		expect(divider).toHaveAttribute('aria-valuemin', '25')
+		expect(divider).toHaveAttribute('aria-valuemax', '75')
+		expect(divider).toHaveAttribute('tabindex', '0')
+		divider.focus()
+		expect(divider).toHaveFocus()
 		fireEvent.keyDown(divider, { key: 'ArrowRight' })
 		expect(divider).toHaveAttribute('aria-valuenow', '52')
 		expect(storage.get('markdown-toolkit:workspace-split')).toBe('52')
@@ -54,14 +60,28 @@ describe('MarkdownWorkspace', () => {
 		} as DOMRect)
 		divider.setPointerCapture = vi.fn()
 		divider.hasPointerCapture = vi.fn(() => true)
+		divider.releasePointerCapture = vi.fn()
 
 		fireEvent.pointerDown(divider, { clientX: 700, pointerId: 1 })
 		expect(divider).toHaveAttribute('aria-valuenow', '75')
 
 		fireEvent.pointerMove(divider, { clientX: 100, pointerId: 1 })
 		expect(divider).toHaveAttribute('aria-valuenow', '25')
+		fireEvent.pointerUp(divider, { pointerId: 1 })
+		expect(divider.releasePointerCapture).toHaveBeenCalledWith(1)
 
 		fireEvent.doubleClick(divider)
 		expect(divider).toHaveAttribute('aria-valuenow', '50')
+	})
+
+	it('releases pointer capture when resizing is cancelled', () => {
+		render(<MarkdownWorkspace content="" onContentChange={() => undefined} />)
+		const divider = screen.getByRole('separator')
+		divider.hasPointerCapture = vi.fn(() => true)
+		divider.releasePointerCapture = vi.fn()
+
+		fireEvent.pointerCancel(divider, { pointerId: 7 })
+
+		expect(divider.releasePointerCapture).toHaveBeenCalledWith(7)
 	})
 })

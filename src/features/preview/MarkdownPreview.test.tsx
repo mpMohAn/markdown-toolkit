@@ -9,6 +9,12 @@ describe('MarkdownPreview', () => {
 		expect(screen.getByText('Start writing Markdown…')).toBeInTheDocument()
 	})
 
+	it('treats a whitespace-only document as empty', () => {
+		render(<MarkdownPreview content={' \n\t '} />)
+
+		expect(screen.getByText('Start writing Markdown…')).toBeInTheDocument()
+	})
+
 	it('renders Markdown content', () => {
 		render(<MarkdownPreview content="# Hello" />)
 

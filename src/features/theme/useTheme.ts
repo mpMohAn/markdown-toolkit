@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { getSystemTheme, type Theme } from './theme'
+import { useEffect, useState } from 'react'
+import { applyTheme, getPreferredTheme, persistTheme, type Theme } from './theme'
 
 interface ThemeController {
 	theme: Theme
@@ -7,11 +7,18 @@ interface ThemeController {
 }
 
 export function useTheme(): ThemeController {
-	const [theme, setTheme] = useState<Theme>(getSystemTheme)
+	const [theme, setTheme] = useState<Theme>(getPreferredTheme)
+
+	useEffect(() => applyTheme(theme), [theme])
 
 	return {
 		theme,
 		toggleTheme: () =>
-			setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light')),
+			setTheme((currentTheme) => {
+				const nextTheme = currentTheme === 'light' ? 'dark' : 'light'
+				persistTheme(nextTheme)
+				applyTheme(nextTheme)
+				return nextTheme
+			}),
 	}
 }

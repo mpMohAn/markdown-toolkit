@@ -1,16 +1,18 @@
-import { useMemo } from 'react'
+import { memo, useDeferredValue, useMemo } from 'react'
 import { renderMarkdown } from './markdownRenderer'
 
 interface MarkdownPreviewProps {
 	content: string
 }
 
-export function MarkdownPreview({ content }: MarkdownPreviewProps) {
-	const renderedMarkdown = useMemo(() => renderMarkdown(content), [content])
+export const MarkdownPreview = memo(function MarkdownPreview({ content }: MarkdownPreviewProps) {
+	const deferredContent = useDeferredValue(content)
+	const renderedMarkdown = useMemo(() => renderMarkdown(deferredContent), [deferredContent])
+	const hasRenderableContent = deferredContent.trim().length > 0
 
 	return (
 		<article className="markdown-preview" aria-label="Rendered Markdown preview">
-			{content ? (
+			{hasRenderableContent ? (
 				<div
 					className="markdown-preview-content"
 					dangerouslySetInnerHTML={{ __html: renderedMarkdown }}
@@ -20,4 +22,4 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
 			)}
 		</article>
 	)
-}
+})

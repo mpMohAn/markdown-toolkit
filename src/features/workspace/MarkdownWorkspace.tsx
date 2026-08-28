@@ -1,48 +1,37 @@
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useState } from 'react'
+import type { EditorView } from '@codemirror/view'
 import { MarkdownEditor } from '../editor/MarkdownEditor'
 import { MarkdownPreview } from '../preview/MarkdownPreview'
+import {
+	clampSplit,
+	DEFAULT_SPLIT_PERCENT,
+	MAX_SPLIT_PERCENT,
+	MIN_SPLIT_PERCENT,
+	readSplitPercent,
+	writeSplitPercent,
+} from './workspacePreferences'
 
-const DEFAULT_SPLIT_PERCENT = 50
-const MIN_SPLIT_PERCENT = 25
-const MAX_SPLIT_PERCENT = 75
 const KEYBOARD_STEP_PERCENT = 2
-const SPLIT_STORAGE_KEY = 'markdown-toolkit:workspace-split'
-
-function clampSplit(value: number) {
-	return Math.min(MAX_SPLIT_PERCENT, Math.max(MIN_SPLIT_PERCENT, value))
-}
-
-function getInitialSplit() {
-	if (typeof window === 'undefined') return DEFAULT_SPLIT_PERCENT
-
-	try {
-		const storedValue = Number.parseFloat(window.localStorage.getItem(SPLIT_STORAGE_KEY) ?? '')
-		return Number.isFinite(storedValue) ? clampSplit(storedValue) : DEFAULT_SPLIT_PERCENT
-	} catch {
-		return DEFAULT_SPLIT_PERCENT
-	}
-}
-
-function persistSplit(splitPercent: number) {
-	try {
-		window.localStorage.setItem(SPLIT_STORAGE_KEY, String(splitPercent))
-	} catch {
-		// Resizing still works when storage is unavailable or blocked.
-	}
-}
 
 interface MarkdownWorkspaceProps {
 	content: string
 	onContentChange: (content: string) => void
+	onEditorReady?: (view: EditorView | null) => void
+	showLineNumbers?: boolean
 }
 
-export function MarkdownWorkspace({ content, onContentChange }: MarkdownWorkspaceProps) {
-	const [splitPercent, setSplitPercent] = useState(getInitialSplit)
+export function MarkdownWorkspace({
+	content,
+	onContentChange,
+	onEditorReady,
+	showLineNumbers = false,
+}: MarkdownWorkspaceProps) {
+	const [splitPercent, setSplitPercent] = useState(readSplitPercent)
 
 	const updateSplit = (nextSplit: number) => {
 		const clampedSplit = clampSplit(nextSplit)
 		setSplitPercent(clampedSplit)
-		persistSplit(clampedSplit)
+		writeSplitPercent(clampedSplit)
 	}
 
 	const updateSplitFromPointer = (event: PointerEvent<HTMLDivElement>) => {
@@ -63,6 +52,12 @@ export function MarkdownWorkspace({ content, onContentChange }: MarkdownWorkspac
 	const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
 		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
 			updateSplitFromPointer(event)
+		}
+	}
+
+	const releasePointer = (event: PointerEvent<HTMLDivElement>) => {
+		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+			event.currentTarget.releasePointerCapture(event.pointerId)
 		}
 	}
 
@@ -87,7 +82,12 @@ export function MarkdownWorkspace({ content, onContentChange }: MarkdownWorkspac
 			style={workspaceStyle}
 		>
 			<section className="workspace-pane editor-pane" aria-label="Markdown editor">
-				<MarkdownEditor content={content} onChange={onContentChange} />
+				<MarkdownEditor
+					content={content}
+					onChange={onContentChange}
+					onReady={onEditorReady}
+					showLineNumbers={showLineNumbers}
+				/>
 			</section>
 			<div
 				className="workspace-divider"
@@ -100,6 +100,8 @@ export function MarkdownWorkspace({ content, onContentChange }: MarkdownWorkspac
 				tabIndex={0}
 				onPointerDown={handlePointerDown}
 				onPointerMove={handlePointerMove}
+				onPointerUp={releasePointer}
+				onPointerCancel={releasePointer}
 				onKeyDown={handleKeyDown}
 				onDoubleClick={() => updateSplit(DEFAULT_SPLIT_PERCENT)}
 			/>
