@@ -1,6 +1,6 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { markdown } from '@codemirror/lang-markdown'
-import { Compartment, EditorState } from '@codemirror/state'
+import { deleteMarkupBackward, markdown } from '@codemirror/lang-markdown'
+import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
 import { GFM } from '@lezer/markdown'
 import {
 	EditorView,
@@ -11,6 +11,7 @@ import {
 	placeholder,
 } from '@codemirror/view'
 import { memo, useEffect, useRef, useState } from 'react'
+import { markdownAutocomplete } from './autocomplete/markdownAutocompleteExtension'
 import { executeEditorCommand } from './editorCommands'
 
 interface MarkdownEditorProps {
@@ -44,13 +45,16 @@ export const MarkdownEditor = memo(function MarkdownEditor({
 			state: EditorState.create({
 				doc: initialContent,
 				extensions: [
-					markdown({ extensions: GFM }),
+					markdown({ extensions: GFM, addKeymap: false }),
+					markdownAutocomplete(),
 					lineNumbersCompartment.of(lineNumberExtensions(initialLineNumbers)),
 					placeholder('Start writing Markdown…'),
 					history(),
 					highlightActiveLine(),
 					EditorView.lineWrapping,
 					keymap.of([
+						{ key: 'Enter', run: exitEmptyMarkdownList },
+						{ key: 'Backspace', run: deleteMarkupBackward },
 						{ key: 'Mod-b', run: (editor) => executeEditorCommand(editor, 'bold') },
 						{ key: 'Mod-i', run: (editor) => executeEditorCommand(editor, 'italic') },
 						{ key: 'Mod-k', run: (editor) => executeEditorCommand(editor, 'link') },
@@ -114,6 +118,23 @@ function lineNumberExtensions(showLineNumbers: boolean) {
 	return showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []
 }
 
+function exitEmptyMarkdownList(view: EditorView) {
+	const range = view.state.selection.main
+	if (!range.empty) return false
+
+	const line = view.state.doc.lineAt(range.head)
+	if (range.head !== line.to || !/^\s*(?:[-+*]|\d+[.)])\s*(?:\[[ xX]\]\s*)?$/.test(line.text)) {
+		return false
+	}
+
+	view.dispatch({
+		changes: { from: line.from, to: line.to, insert: '' },
+		selection: EditorSelection.cursor(line.from),
+		userEvent: 'input',
+	})
+	return true
+}
+
 const editorTheme = EditorView.theme({
 	'&': {
 		height: '100%',
@@ -139,10 +160,12 @@ const editorTheme = EditorView.theme({
 	'.cm-lineNumbers .cm-gutterElement': {
 		minWidth: '2ch',
 		padding: '0 var(--space-1) 0 0',
+		opacity: '0.62',
 	},
-	'.cm-activeLineGutter': {
+	'.cm-lineNumbers .cm-activeLineGutter': {
 		backgroundColor: 'transparent',
-		color: 'var(--color-text)',
+		color: 'var(--color-text-muted)',
+		opacity: '1',
 	},
 	'.cm-activeLine': { backgroundColor: 'var(--color-active-line)' },
 	'.cm-placeholder': {

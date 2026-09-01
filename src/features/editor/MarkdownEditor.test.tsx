@@ -87,4 +87,58 @@ describe('MarkdownEditor', () => {
 			expect(onChange).toHaveBeenLastCalledWith(expected)
 		},
 	)
+
+	it.each([
+		['heading', '## First heading', '## '],
+		['unordered list', '- one', '- '],
+		['ordered list', '1. one\n2. two', '3. '],
+	] as const)(
+		'shows and accepts a %s continuation only with Tab',
+		(_name, content, suggestion) => {
+			let editorView: EditorView | null = null
+			render(
+				<MarkdownEditor
+					content={content}
+					onChange={() => undefined}
+					onReady={(view) => {
+						editorView = view
+					}}
+				/>,
+			)
+			const editor = screen.getByRole('textbox', { name: 'Markdown editor' })
+			editorView!.dispatch({ selection: EditorSelection.cursor(content.length) })
+
+			fireEvent.keyDown(editor, { key: 'Enter' })
+
+			expect(editorView!.state.doc.toString()).toBe(`${content}\n`)
+			expect(document.querySelector('.cm-markdown-autocomplete-ghost')?.textContent).toBe(
+				suggestion,
+			)
+
+			fireEvent.keyDown(editor, { key: 'Tab' })
+
+			expect(editorView!.state.doc.toString()).toBe(`${content}\n${suggestion}`)
+			expect(editorView!.state.selection.main.head).toBe(editorView!.state.doc.length)
+		},
+	)
+
+	it('keeps Enter available to exit an empty Markdown list marker', () => {
+		let editorView: EditorView | null = null
+		render(
+			<MarkdownEditor
+				content={'- one\n- '}
+				onChange={() => undefined}
+				onReady={(view) => {
+					editorView = view
+				}}
+			/>,
+		)
+		editorView!.dispatch({ selection: EditorSelection.cursor(editorView!.state.doc.length) })
+
+		fireEvent.keyDown(screen.getByRole('textbox', { name: 'Markdown editor' }), {
+			key: 'Enter',
+		})
+
+		expect(editorView!.state.doc.toString()).toBe('- one\n')
+	})
 })
