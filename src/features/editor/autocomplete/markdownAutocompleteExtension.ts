@@ -142,6 +142,11 @@ export function markdownAutocomplete(): Extension {
 		),
 		EditorView.baseTheme({
 			'.cm-markdown-autocomplete-ghost': {
+				display: 'inline',
+				font: 'inherit',
+				lineHeight: 'inherit',
+				letterSpacing: 'inherit',
+				verticalAlign: 'baseline',
 				color: 'var(--color-text-muted)',
 				opacity: '0.48',
 				pointerEvents: 'none',

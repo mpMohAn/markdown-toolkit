@@ -21,6 +21,7 @@ describe('markdownAutocomplete extension', () => {
 
 		const ghost = view.dom.querySelector('.cm-markdown-autocomplete-ghost')
 		expect(ghost?.textContent).toBe('## ')
+		expect(ghost?.tagName).toBe('SPAN')
 		expect(ghost).toHaveAttribute('aria-hidden', 'true')
 		expect(view.state.doc.toString()).toBe('## Heading\n')
 	})

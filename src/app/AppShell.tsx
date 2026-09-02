@@ -1,5 +1,6 @@
 import type { EditorView } from '@codemirror/view'
 import { useCallback, useMemo, useState } from 'react'
+import { AICleanup } from '../features/ai/AICleanup'
 import type { DocumentSession } from '../features/document/ui/useDocumentLifecycle'
 import { useDocumentLifecycle } from '../features/document/ui/useDocumentLifecycle'
 import { EditorToolbar } from '../features/editor/EditorToolbar'
@@ -41,6 +42,12 @@ export function AppShell() {
 					/>
 					{documentSession.document ? (
 						<DocumentActions content={documentSession.document.content} />
+					) : null}
+					{documentSession.document ? (
+						<AICleanup
+							content={documentSession.document.content}
+							onApply={documentSession.updateContent}
+						/>
 					) : null}
 					<div className="workspace-controls">
 						<ThemeToggle theme={theme} onToggle={toggleTheme} />

@@ -203,6 +203,170 @@ a {
 	padding-left: 3px;
 	border-left: var(--border-width) solid var(--color-border);
 }
+.ai-cleanup-trigger {
+	flex: 0 0 auto;
+	min-width: 24px;
+	margin-left: 4px;
+	font-weight: 650;
+}
+.ai-cleanup-trigger:disabled {
+	cursor: default;
+	opacity: 0.38;
+}
+.ai-review-backdrop {
+	display: grid;
+	position: fixed;
+	z-index: 20;
+	inset: 0;
+	place-items: center;
+	padding: var(--space-4);
+	background: oklch(0% 0 0 / 45%);
+}
+.ai-review-dialog {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	width: min(68rem, 100%);
+	max-height: min(48rem, calc(100vh - 2rem));
+	border: var(--border-width) solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-preview-surface);
+	box-shadow: 0 16px 48px oklch(0% 0 0 / 28%);
+}
+.ai-review-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-4);
+	padding: var(--space-3) var(--space-4);
+	border-bottom: var(--border-width) solid var(--color-border);
+}
+.ai-review-header h2,
+.ai-review-header p,
+.ai-review-columns h3 {
+	margin: 0;
+}
+.ai-review-header h2 {
+	font-size: 1rem;
+}
+.ai-review-header p {
+	color: var(--color-text-muted);
+	font-size: 0.75rem;
+}
+.ai-review-header button,
+.ai-review-actions button {
+	border: var(--border-width) solid var(--color-border);
+	border-radius: 3px;
+	background: var(--color-surface);
+	color: var(--color-text);
+	cursor: pointer;
+}
+.ai-review-header button {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	font-size: 1.2rem;
+	line-height: 1;
+}
+.ai-review-header button:hover:not(:disabled),
+.ai-review-actions button:hover:not(:disabled) {
+	border-color: var(--color-interaction-hover);
+	background: var(--color-surface-subtle);
+}
+.ai-review-header button:disabled,
+.ai-review-actions button:disabled {
+	cursor: default;
+	opacity: 0.45;
+}
+.ai-review-body {
+	min-height: 0;
+	overflow: auto;
+	padding: var(--space-4);
+}
+.ai-review-body > p {
+	max-width: 42rem;
+	margin: 0 0 var(--space-4);
+}
+.ai-generation-status {
+	color: var(--color-text-muted);
+	font-size: 0.8125rem;
+}
+.ai-stream-cursor {
+	color: var(--color-text-muted);
+}
+.ai-review-columns {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-3);
+	min-height: 20rem;
+}
+.ai-review-columns section {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	min-width: 0;
+	gap: var(--space-1);
+}
+.ai-review-columns h3 {
+	color: var(--color-text-muted);
+	font-size: 0.75rem;
+	font-weight: 650;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.ai-review-columns pre {
+	min-height: 18rem;
+	max-height: 55vh;
+	margin: 0;
+	overflow: auto;
+	padding: var(--space-3);
+	border: var(--border-width) solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-editor-surface);
+	color: var(--color-text);
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	line-height: 1.55;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.ai-review-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	margin-top: var(--space-4);
+}
+.ai-review-actions button {
+	min-width: 5rem;
+	padding: var(--space-1) var(--space-3);
+}
+.ai-download-progress {
+	display: grid;
+	max-width: 24rem;
+	gap: var(--space-1);
+	color: var(--color-text-muted);
+	font-size: 0.8125rem;
+}
+.ai-download-progress progress {
+	width: 100%;
+	accent-color: var(--color-interaction-hover);
+}
+.ai-poc-metrics {
+	margin-top: var(--space-4);
+	color: var(--color-text-muted);
+	font-size: 0.75rem;
+}
+.ai-poc-metrics dl {
+	margin: var(--space-1) 0 0;
+}
+.ai-poc-metrics div {
+	display: grid;
+	grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
+	column-gap: var(--space-2);
+}
+.ai-poc-metrics dt,
+.ai-poc-metrics dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
 .toolbar-button,
 .theme-toggle {
 	display: grid;
@@ -622,6 +786,12 @@ a {
 	}
 	.workspace-divider {
 		display: none;
+	}
+	.ai-review-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.ai-review-columns pre {
+		min-height: 12rem;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
