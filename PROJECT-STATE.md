@@ -32,6 +32,19 @@ Production: https://markdown-toolkit.pages.dev/
 - Release metadata, favicons, robots.txt
 - Cloudflare Pages deployment
 
+## Repository / Working State
+
+Latest locally reported Codex state before these project-document updates:
+
+- Local branch: `main`
+- Local HEAD: `ea44512 feat: add smart markdown autocomplete`
+- Nothing staged
+- 11 uncommitted files total
+  - 4 modified tracked files
+  - 7 new AI files
+
+Important: `PROJECT-STATE.md` and `DECISIONS.md` are maintained directly in GitHub as shared project context. The local checkout may therefore be behind remote `main` until those documentation commits are fetched/integrated.
+
 ## Smart Markdown Autocomplete
 
 ### Implemented
@@ -65,71 +78,115 @@ Interaction:
 - Enter does not accept it
 - With no suggestion, Tab keeps normal CodeMirror indentation
 
-### Current issue
+### Ghost rendering — current uncommitted state
 
-Ghost text is rendered using CodeMirror `Decoration.widget` / `WidgetType`.
+Modified locally:
 
-- Chrome: acceptable / close to normal baseline
-- Firefox: ghost text is on the correct editor line but appears slightly vertically misaligned
-- A `Decoration.line + ::after` experiment made both Chrome and Firefox worse and was reverted
-- Do not reintroduce that approach without a new design review
+- `src/features/editor/autocomplete/markdownAutocompleteExtension.ts`
+- `src/features/editor/autocomplete/markdownAutocompleteExtension.test.ts`
 
-Current investigation is focused on CodeMirror empty-line/widget behavior, including `cm-widgetBuffer`, the trailing empty-line `<br>`, widget placement/`side`, and line-box geometry.
+Current implementation:
 
-Firefox remains a manual verification target because the connected browser-debugging tooling could not provide trustworthy Firefox geometry.
+- Uses the original CodeMirror `Decoration.widget` / `WidgetType` architecture
+- Renders an `aria-hidden` inline `<span>`
+- Retains `side: 1` so the suggestion remains semantically after the cursor
+- The failed `Decoration.line + ::after` experiment has been completely reverted
+- The widget currently inherits `font`, `line-height`, and `letter-spacing`, with baseline styling
+- Test coverage additionally confirms that the widget DOM node is a `SPAN`
 
-## Local AI POC
+Current browser status:
 
-Experimental local AI cleanup is implemented using Chrome's built-in `LanguageModel` Prompt API.
+- Chrome: real text and ghost text measured with identical geometry
+- Firefox: ghost text is on the correct editor line but remains slightly vertically/baseline misaligned
+- Firefox geometry has not yet been captured through connected browser-debugging tooling
 
-Implemented:
+Investigation findings:
 
-- AI Clean Up action
-- Local/on-device inference only
-- No hosted AI API or API key
-- Original vs Suggestion review flow
-- Explicit Apply / Cancel
-- `promptStreaming()`
-- Reusable warm base session
-- Fresh clone per cleanup to avoid cross-document context contamination
-- Development-only metrics
-- Setup/download progress handling
-- 40-second setup inactivity watchdog
-- Retry / Cancel for stalled setup
-- No browser sniffing
+- CodeMirror inserts a zero-width `.cm-widgetBuffer` before a positive-side widget
+- CodeMirror adds a trailing `<br>` to preserve the empty editable line
+- `side: 0` and `side: -1` moved the buffer after the widget in Chrome but did not change Chrome geometry
+- Those side values would also place the widget before the cursor, so no side change was retained
+- Current leading hypothesis: Firefox line-box interaction involving `.cm-widgetBuffer`, the non-editable widget span, and the empty-line `<br>`
 
-Manual browser results:
+Do not claim this Firefox hypothesis as confirmed until Firefox geometry is measured or another CodeMirror-native cause is demonstrated.
 
-- Chrome: working
-- Firefox: Chrome `LanguageModel` API unavailable; normal editor remains usable
-- Arc: API surface may be present, but local-model setup can stall; watchdog handles this as a controlled readiness failure
+## Local AI Clean Up POC — uncommitted
 
-WebLLM and other cross-browser local-AI fallbacks are deferred.
+The experimental AI Clean Up implementation is currently in the local working tree and has not yet been committed.
+
+New files under `src/features/ai/`:
+
+- `AIProvider.ts`
+- `chromeBuiltInAIProvider.ts`
+- `markdownCleanup.ts`
+- `AICleanup.tsx`
+- Three focused AI test files
+
+Related modified tracked files:
+
+- `AppShell.tsx` — adds the AI toolbar control
+- `index.css` — review modal, streaming/progress states, responsive layout, and development metrics styling
+
+Implemented behavior:
+
+- Chrome `LanguageModel` capability detection only; no browser sniffing
+- No hosted AI, API keys, application inference network calls, new AI SDKs, or new dependencies
+- Explicit Enable AI action before local model creation/download
+- One reusable warm base session containing static cleanup instructions only
+- Fresh cloned session per cleanup to avoid cross-document context contamination
+- `promptStreaming()` with throttled progressive rendering
+- Original Markdown stays untouched until explicit Apply
+- Cancel aborts setup or generation
+- Apply uses the existing document update/autosave path
+- 40-second inactivity watchdog for stalled model setup
+- Advancing `downloadprogress` resets the watchdog
+- Unsupported and stalled setup states remain distinct
+- Development-only metrics contain timing/count data and never Markdown content
+
+Manual status:
+
+- Chrome: functionally working
+- Firefox: Chrome `LanguageModel` API unavailable; editor remains usable
+- Arc: model setup can stall; watchdog provides a controlled readiness failure
+- POC status: experimental; shipping/commit strategy is still undecided
+
+WebLLM and other cross-browser local-AI fallbacks remain deferred.
+
+## Pending Decisions Before Commit
+
+1. Whether the experimental AI Clean Up POC should ship in the next commit or remain isolated on a POC branch
+2. Whether to retain the inherited ghost typography declarations; they are harmless in Chrome but did not solve Firefox
+3. How to address Firefox baseline alignment after better Firefox-specific evidence is available
+4. Continue deferring the existing Vite >500 kB bundle warning; it predates this browser investigation and has no demonstrated regression tied to the current work
 
 ## QA / Validation
 
-Most recent reported validation before the current autocomplete investigation:
+Most recent complete reported local validation:
 
-- 178 tests across 21 files passed
+- 21 test files
+- 178 tests passed
 - Lint passed
 - Build passed
 - Format check passed
 - `git diff --check` passed
 - Existing Vite >500 kB JavaScript chunk warning remains
 
-These numbers should be updated after the current local Codex work is completed and manually accepted.
+These results cover the current uncommitted implementation as last reported by Codex. They do not replace manual browser acceptance.
 
 ## Current Task
 
-Investigate and fix the remaining Firefox ghost-text baseline alignment issue without browser sniffing or arbitrary pixel offsets.
+Resolve or make an evidence-based decision on the remaining Firefox ghost-text baseline alignment issue without browser sniffing or arbitrary pixel offsets.
 
 Preferred order:
 
-1. Understand current CodeMirror widget/empty-line DOM and geometry
-2. Prefer the smallest CodeMirror-native fix
-3. Keep existing prediction logic unchanged
-4. Use manual Firefox verification
-5. Only consider a cursor-coordinate overlay if the WidgetType path cannot be made reliable
+1. Gather trustworthy Firefox-specific evidence if possible
+2. Keep the current WidgetType architecture while investigating
+3. Prefer the smallest CodeMirror-native fix
+4. Keep prediction/autocomplete behavior unchanged
+5. Manually verify Firefox and Chrome
+6. Only consider a cursor-coordinate overlay if WidgetType cannot be made reliable
+
+Separately, decide whether the AI POC belongs in the next accepted commit or should remain isolated for further experimentation.
 
 ## Development Workflow
 
