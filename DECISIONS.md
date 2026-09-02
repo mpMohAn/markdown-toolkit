@@ -67,6 +67,14 @@ Preserve indentation and the exact structural prefix from the previous eligible 
 - Escape dismisses the suggestion.
 - Enter does not accept autocomplete.
 
+### Ghost rendering architecture
+
+- The current preferred implementation remains CodeMirror `Decoration.widget` / `WidgetType`.
+- The ghost is an inline `aria-hidden` span.
+- Keep `side: 1` unless new evidence demonstrates a CodeMirror-native reason to change it. This keeps the suggestion semantically after the cursor.
+- Chrome investigation showed `side: 0` and `side: -1` changed `.cm-widgetBuffer` placement but did not improve geometry and would place the widget before the cursor.
+- Do not change widget `side` merely to rearrange the buffer without demonstrated rendering benefit.
+
 ### Rejected ghost-rendering approach
 
 `Decoration.line(...)` plus `.cm-line::after` was tested for ghost rendering and rejected.
@@ -91,6 +99,8 @@ Do not solve browser alignment with:
 
 Prefer CodeMirror-native behavior and measured geometry. A cursor-coordinate overlay may be considered only if WidgetType cannot be made reliable.
 
+Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-editable widget span, and the empty-line `<br>` is a hypothesis, not a confirmed root cause. Chrome-only geometry must not be presented as proof of Firefox behavior.
+
 ## Local AI
 
 - AI is an optional enhancement; the Markdown editor must remain fully functional without it.
@@ -102,6 +112,7 @@ Prefer CodeMirror-native behavior and measured geometry. A cursor-coordinate ove
 - Local model download/setup must begin from explicit user action rather than silently on page load.
 - AI failures must preserve the original document.
 - Do not browser-sniff for Chrome, Firefox, Arc, or Chromium. Use capability/state detection.
+- The current AI Clean Up implementation remains explicitly a POC until its shipping/commit strategy is deliberately accepted.
 
 ### AI session isolation
 
@@ -111,12 +122,25 @@ Prefer CodeMirror-native behavior and measured geometry. A cursor-coordinate ove
 - Destroy the task clone afterward.
 - This avoids cross-document conversational context contamination while reducing repeated cold setup.
 
+### AI streaming and application
+
+- Use `promptStreaming()` for progressive local output when supported by the chosen provider implementation.
+- Throttle UI updates rather than mutating React state for every tiny stream event.
+- Streaming output belongs in the review experience, not directly in CodeMirror.
+- Applying a completed suggestion must use the existing document update/autosave path.
+- Cancel must leave the original Markdown unchanged.
+
 ### AI setup behavior
 
 - Distinguish unsupported from present-but-stalled setup.
-- Model setup has an inactivity watchdog; active progress resets it.
+- Model setup has a 40-second inactivity watchdog; advancing download progress resets it.
+- Retry starts fresh setup state rather than relying on a stale aborted setup.
 - Do not use a fake inference percentage.
 - Do not apply a short timeout to legitimate inference simply because generation is slow.
+
+### AI development metrics
+
+Development-only AI diagnostics may include timing, availability/session state, character counts, context usage/window where available, and result status. They must never contain the user's Markdown/document content.
 
 ## Security / Privacy
 
@@ -131,12 +155,14 @@ Prefer CodeMirror-native behavior and measured geometry. A cursor-coordinate ove
 - Preserve CodeMirror instances where practical rather than recreating them for preference changes.
 - Preview work may be deferred to keep editing responsive.
 - The existing >500 kB Vite bundle warning is known and accepted for V1; do not restructure chunks merely to hide the warning without an actual performance benefit.
+- The existing bundle warning predates the current ghost-rendering investigation and should not be treated as a regression without measured evidence.
 
 ## Browser Strategy
 
 - Current Chrome, Safari, and Firefox desktop are the main editor compatibility targets.
 - Chrome built-in AI support is an enhancement and does not define general editor browser support.
 - Browser-specific fixes should be avoided unless a standards-based or library-native solution is genuinely impossible and the behavior is demonstrated.
+- When connected browser tooling cannot inspect a target browser, clearly distinguish measured results from manual observations; do not fabricate cross-browser geometry.
 
 ## Deployment
 
@@ -152,6 +178,7 @@ Prefer CodeMirror-native behavior and measured geometry. A cursor-coordinate ove
 - Codex implements and runs automated checks.
 - Manual testing happens before commit/push approval.
 - Do not commit/push experimental work merely because automated tests pass.
+- GitHub project-state documentation may be ahead of the developer's local checkout; local Codex should check/fetch remote state before making assumptions about HEAD.
 
 ## Deferred / Future Work
 
