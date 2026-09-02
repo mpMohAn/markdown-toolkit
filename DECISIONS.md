@@ -1,0 +1,172 @@
+# Markdown Toolkit — Decisions
+
+This file records durable product, architecture, UX, and engineering decisions so future work does not accidentally repeat rejected approaches.
+
+## Product Direction
+
+- Markdown Toolkit is a tool-first, local-first Markdown editor.
+- V1 is browser-only and does not require accounts, authentication, a backend, or cloud sync.
+- Desktop is the primary experience. Mobile should remain functional but is not the main design target.
+- The product may eventually be part of a broader collection of useful free web tools.
+
+## UX Direction
+
+- Content first, controls second.
+- Compact IDE/tool-style interface rather than a marketing-style application shell.
+- No permanent product-title/header inside the editor workspace.
+- No giant outer card around the editor.
+- Neutral visual hierarchy; avoid unnecessary bright blue/cyan emphasis.
+- Toolbar and status areas should remain compact.
+- Accessibility and usable hit/focus targets must not be sacrificed for compactness.
+
+## Editor / Markdown
+
+- CodeMirror is the editor foundation.
+- Standard Markdown semantics should be preserved rather than inventing renderer-specific behavior.
+- Single Markdown source newlines are allowed to render as part of the same paragraph according to normal Markdown behavior.
+- Folder/tree structures that require preserved line breaks belong naturally in fenced code blocks.
+- Line numbers are optional and persisted locally.
+
+## Persistence
+
+- IndexedDB is the document persistence layer.
+- Active V1 document ID: `active-document`.
+- React components should not depend directly on IndexedDB implementation details.
+- Autosave is local and debounced.
+
+## Markdown Autocomplete
+
+### Outside fenced code blocks
+
+Use Markdown-aware deterministic continuation, including headings, lists, tasks, ordered lists, blockquotes, and conservative learned heading patterns.
+
+### Inside fenced code blocks
+
+Only structural/tree continuation is allowed.
+
+Supported structural families include:
+
+- `|--`
+- longer exact `|----`-style prefixes
+- `+--`
+- `\\--`
+- `├──`
+- nested prefixes such as `│   ├──`
+
+Preserve indentation and the exact structural prefix from the previous eligible line.
+
+### Terminal branch
+
+- `└──` does not automatically continue because it conventionally represents the final sibling.
+- Do not guess when `├──` should become `└──`.
+
+### Interaction
+
+- Tab accepts a visible ghost suggestion.
+- If no ghost exists, Tab retains normal CodeMirror behavior.
+- Escape dismisses the suggestion.
+- Enter does not accept autocomplete.
+
+### Rejected ghost-rendering approach
+
+`Decoration.line(...)` plus `.cm-line::after` was tested for ghost rendering and rejected.
+
+Reason:
+
+- It caused the ghost to appear on a separate visual line in both Chrome and Firefox.
+- It was worse than the existing `Decoration.widget` / `WidgetType` implementation.
+
+Do not reintroduce this approach without a new design review and evidence that the underlying problem has changed.
+
+### Ghost alignment constraints
+
+Do not solve browser alignment with:
+
+- browser/user-agent sniffing
+- `@-moz-document`
+- arbitrary `top` offsets
+- `translateY(...)`
+- negative margins
+- browser-specific magic pixels
+
+Prefer CodeMirror-native behavior and measured geometry. A cursor-coordinate overlay may be considered only if WidgetType cannot be made reliable.
+
+## Local AI
+
+- AI is an optional enhancement; the Markdown editor must remain fully functional without it.
+- The first POC uses Chrome's built-in local `LanguageModel` Prompt API.
+- No hosted AI API, backend inference, API keys, WebLLM, or Transformers.js for the initial POC.
+- WebLLM remains a possible future cross-browser fallback.
+- AI must never automatically overwrite Markdown.
+- Users review Original vs Suggestion and explicitly Apply or Cancel.
+- Local model download/setup must begin from explicit user action rather than silently on page load.
+- AI failures must preserve the original document.
+- Do not browser-sniff for Chrome, Firefox, Arc, or Chromium. Use capability/state detection.
+
+### AI session isolation
+
+- Maintain a reusable warm base session containing only static cleanup instructions.
+- Never put document content into the reusable base session.
+- Clone the base session for each cleanup operation.
+- Destroy the task clone afterward.
+- This avoids cross-document conversational context contamination while reducing repeated cold setup.
+
+### AI setup behavior
+
+- Distinguish unsupported from present-but-stalled setup.
+- Model setup has an inactivity watchdog; active progress resets it.
+- Do not use a fake inference percentage.
+- Do not apply a short timeout to legitimate inference simply because generation is slow.
+
+## Security / Privacy
+
+- Markdown content stays local for V1.
+- Sanitized preview/copy/download should use a consistent rendering/sanitization pipeline.
+- Remote images embedded by the user may still cause the browser to make requests to their remote URLs; this is documented rather than hidden.
+- AI POC must not send Markdown to hosted inference services.
+
+## Performance
+
+- Avoid unnecessary dependencies.
+- Preserve CodeMirror instances where practical rather than recreating them for preference changes.
+- Preview work may be deferred to keep editing responsive.
+- The existing >500 kB Vite bundle warning is known and accepted for V1; do not restructure chunks merely to hide the warning without an actual performance benefit.
+
+## Browser Strategy
+
+- Current Chrome, Safari, and Firefox desktop are the main editor compatibility targets.
+- Chrome built-in AI support is an enhancement and does not define general editor browser support.
+- Browser-specific fixes should be avoided unless a standards-based or library-native solution is genuinely impossible and the behavior is demonstrated.
+
+## Deployment
+
+- Production is deployed with Cloudflare Pages.
+- Production branch is `main`.
+- Build command: `npm run build`.
+- Build output directory: `dist`.
+
+## Development Workflow
+
+- Plan/design before implementation.
+- Complex changes receive a second design review before a Codex prompt is provided.
+- Codex implements and runs automated checks.
+- Manual testing happens before commit/push approval.
+- Do not commit/push experimental work merely because automated tests pass.
+
+## Deferred / Future Work
+
+Deferred beyond V1 or the current POC includes:
+
+- WebLLM/local-AI fallback
+- broader AI rewrite/grammar/summarization features
+- AI inline sentence completion
+- PDF/DOCX export
+- accounts/authentication
+- cloud sync
+- multiple documents/workspaces
+- collaboration
+- GitHub integration inside the product
+- command palette
+- synchronized editor/preview scrolling
+
+Update this file when a durable decision changes. Do not use it as a temporary task log; temporary/current status belongs in `PROJECT-STATE.md`.
