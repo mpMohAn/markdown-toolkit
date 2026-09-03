@@ -1,3 +1,4 @@
+import { undoDepth } from '@codemirror/commands'
 import { EditorSelection } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -13,6 +14,36 @@ describe('MarkdownEditor', () => {
 		)
 	})
 
+	it('renders syntax highlighting for every Markdown heading level', () => {
+		const { container } = render(
+			<MarkdownEditor
+				content={'# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6'}
+				onChange={() => undefined}
+			/>,
+		)
+		const headingLines = Array.from(container.querySelectorAll('.cm-line'))
+
+		expect(headingLines).toHaveLength(6)
+		expect(headingLines.every((line) => line.querySelector('span'))).toBe(true)
+	})
+
+	it('does not highlight heading-looking text inside a fenced code block as a heading', () => {
+		const { container } = render(
+			<MarkdownEditor
+				content={'# Heading\n\n```md\n# Code heading\n```'}
+				onChange={() => undefined}
+			/>,
+		)
+		const lines = container.querySelectorAll('.cm-line')
+		const headingClass = lines[0]?.querySelector('span')?.className
+		const codeClasses = Array.from(lines[3]?.querySelectorAll('span') ?? []).map(
+			(element) => element.className,
+		)
+
+		expect(headingClass).toBeTruthy()
+		expect(codeClasses).not.toContain(headingClass)
+	})
+
 	it('toggles line numbers without changing content or selection', () => {
 		let editorView: EditorView | null = null
 		const onChange = vi.fn()
@@ -22,13 +53,20 @@ describe('MarkdownEditor', () => {
 		const { container, rerender } = render(
 			<MarkdownEditor content={'first\nsecond'} onChange={onChange} onReady={onReady} />,
 		)
-		editorView!.dispatch({ selection: EditorSelection.range(2, 8) })
+		editorView!.dispatch({
+			changes: { from: editorView!.state.doc.length, insert: '!' },
+			selection: EditorSelection.range(2, 8),
+		})
+		editorView!.scrollDOM.scrollTop = 24
+		editorView!.focus()
+		onChange.mockClear()
+		const historyDepth = undoDepth(editorView!.state)
 
 		expect(container.querySelector('.cm-lineNumbers')).not.toBeInTheDocument()
 		const initialEditorView = editorView
 		rerender(
 			<MarkdownEditor
-				content={'first\nsecond'}
+				content={'first\nsecond!'}
 				onChange={onChange}
 				onReady={onReady}
 				showLineNumbers
@@ -36,15 +74,18 @@ describe('MarkdownEditor', () => {
 		)
 
 		expect(container.querySelector('.cm-lineNumbers')).toBeInTheDocument()
-		expect(editorView!.state.doc.toString()).toBe('first\nsecond')
+		expect(editorView!.state.doc.toString()).toBe('first\nsecond!')
 		expect(editorView!.state.selection.main.from).toBe(2)
 		expect(editorView!.state.selection.main.to).toBe(8)
 		expect(editorView).toBe(initialEditorView)
+		expect(editorView!.scrollDOM.scrollTop).toBe(24)
+		expect(editorView!.hasFocus).toBe(true)
+		expect(undoDepth(editorView!.state)).toBe(historyDepth)
 		expect(onChange).not.toHaveBeenCalled()
 
 		rerender(
 			<MarkdownEditor
-				content={'first\nsecond'}
+				content={'first\nsecond!'}
 				onChange={onChange}
 				onReady={onReady}
 				showLineNumbers={false}

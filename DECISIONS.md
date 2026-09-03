@@ -18,6 +18,11 @@ This file records durable product, architecture, UX, and engineering decisions s
 - Neutral visual hierarchy; avoid unnecessary bright blue/cyan emphasis.
 - Toolbar and status areas should remain compact.
 - Accessibility and usable hit/focus targets must not be sacrificed for compactness.
+- The application toolbar uses three stable regions: brand and formatting on the left, the document filename independently centred relative to the window, and document/application actions on the right.
+- The right action order is Copy, Download, AI Clean Up, then Theme. The filename truncates or hides before essential controls are removed.
+- The approved compact Markdown Toolkit favicon asset is reused as the toolbar brand; reference-project names, logos, fonts, and utility CSS are not runtime dependencies.
+- Toolbar controls use only individually selected Google Material SVG files bundled under `src/assets/icons/material/` and rendered as current-colour masks. Runtime Google Fonts, icon fonts, icon CDNs, and full icon libraries are prohibited.
+- Text style, Copy, Download, and future toolbar menus share one accessible menu primitive: a single menu may be open, native button triggers expose menu state, arrow/Home/End/Escape behavior is supported, Tab closes naturally, and outside listeners are cleaned up.
 
 ## Editor / Markdown
 
@@ -26,6 +31,18 @@ This file records durable product, architecture, UX, and engineering decisions s
 - Single Markdown source newlines are allowed to render as part of the same paragraph according to normal Markdown behavior.
 - Folder/tree structures that require preserved line breaks belong naturally in fenced code blocks.
 - Line numbers are optional and persisted locally.
+- Paragraph plus H1–H6 share the existing editor-command layer; Paragraph removes an ATX heading marker without changing unrelated block syntax.
+- CodeMirror assigns one shared semantic colour to H1–H6 syntax in the editor only. Preview heading presentation remains independent.
+- The shared editor heading token must meet WCAG AA contrast against the actual theme editor surface; the gutter uses CodeMirror styling and a semantic right-gap token rather than document text spacing.
+- Header bottom, footer top, and split boundaries use `--color-workspace-border`. Each structural seam has one border owner; editor and preview panes do not add adjacent desktop split borders.
+- Editor focus does not change pane borders or surface colours. The caret, selection, and active-line treatment provide editor-state feedback; the keyboard splitter retains its own focus-visible treatment.
+- Image formatting follows the Link command pattern through the shared editor command layer and inserts Markdown image syntax only. It does not upload, select, paste, or fetch image files.
+
+## Document Identity
+
+- The first valid ATX H1 outside fenced code and HTML comments supplies document identity.
+- Inline Markdown is converted to readable plain text for toolbar display; export uses the same title with the established safe-basename normalization.
+- Missing or unusable H1 content falls back to `Untitled.md` for display and `untitled` for export basenames.
 
 ## Persistence
 
@@ -216,9 +233,6 @@ Deferred beyond V1 or the current POC includes:
 - GitHub integration inside the product
 - command palette
 - synchronized editor/preview scrolling
-- compact branded application header
-- filename derivation from the first H1
-- distinct H1–H6 editor syntax colours
 - preview-only Mermaid rendering
 
 Update this file when a durable decision changes. Do not use it as a temporary task log; temporary/current status belongs in `PROJECT-STATE.md`.

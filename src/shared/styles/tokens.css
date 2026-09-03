@@ -20,6 +20,7 @@
 	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 	--pane-padding-block: var(--space-5);
 	--pane-padding-inline: clamp(var(--space-5), 4vw, var(--space-7));
+	--editor-gutter-gap: var(--space-3);
 	--prose-measure: 48rem;
 	--color-canvas: oklch(94.5% 0.006 85);
 	--color-surface: oklch(97.5% 0.004 85);
@@ -28,7 +29,8 @@
 	--color-preview-surface: oklch(95% 0.004 85);
 	--color-text: oklch(24% 0.02 260);
 	--color-text-muted: oklch(48% 0.025 260);
-	--color-border: oklch(84% 0.01 85);
+	--color-workspace-border: oklch(84% 0.01 85);
+	--color-border: var(--color-workspace-border);
 	--color-interaction: oklch(68% 0.008 260);
 	--color-interaction-hover: oklch(60% 0.01 260);
 	--color-focus: oklch(52% 0.012 260);
@@ -41,6 +43,7 @@
 	--color-progress-fill: oklch(48% 0.012 260);
 	--color-progress-border: oklch(76% 0.01 85);
 	--color-progress-indeterminate: oklch(57% 0.012 260);
+	--color-editor-heading: oklch(40% 0.12 25);
 }
 
 [data-theme='dark'] {
@@ -51,7 +54,7 @@
 	--color-preview-surface: oklch(18% 0.008 285);
 	--color-text: oklch(94% 0.01 260);
 	--color-text-muted: oklch(73% 0.025 260);
-	--color-border: oklch(28% 0.01 285);
+	--color-workspace-border: oklch(28% 0.01 285);
 	--color-interaction: oklch(42% 0.01 285);
 	--color-interaction-hover: oklch(54% 0.012 285);
 	--color-focus: oklch(68% 0.012 285);
@@ -64,4 +67,5 @@
 	--color-progress-fill: oklch(70% 0.012 260);
 	--color-progress-border: oklch(38% 0.012 285);
 	--color-progress-indeterminate: oklch(62% 0.012 260);
+	--color-editor-heading: oklch(78% 0.12 25);
 }

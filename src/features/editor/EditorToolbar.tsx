@@ -1,14 +1,32 @@
 import type { EditorView } from '@codemirror/view'
-import { memo, useRef, useState } from 'react'
-import { handleToolbarMenuKeyDown } from '../../shared/components/toolbarMenuKeyboard'
+import { memo } from 'react'
+import { MaterialIcon, type MaterialIconName } from '../../shared/components/MaterialIcon'
+import { ToolbarMenu } from '../../shared/components/ToolbarMenu'
 import {
 	EDITOR_COMMANDS,
 	executeEditorCommand,
 	type EditorCommandDefinition,
 } from './editorCommands'
 
-const headingCommands = EDITOR_COMMANDS.filter((command) => command.id.startsWith('heading'))
-const formattingCommands = EDITOR_COMMANDS.filter((command) => !command.id.startsWith('heading'))
+const textStyleCommands = EDITOR_COMMANDS.filter(
+	(command) => command.id === 'paragraph' || command.id.startsWith('heading'),
+)
+const formattingCommands = EDITOR_COMMANDS.filter(
+	(command) => command.id !== 'paragraph' && !command.id.startsWith('heading'),
+)
+const commandIcons: Record<string, MaterialIconName> = {
+	bold: 'formatBold',
+	italic: 'formatItalic',
+	strikethrough: 'formatStrikethrough',
+	link: 'link',
+	image: 'image',
+	inlineCode: 'code',
+	codeBlock: 'codeBlocks',
+	blockquote: 'formatQuote',
+	unorderedList: 'formatListBulleted',
+	orderedList: 'formatListNumbered',
+	taskList: 'checklist',
+}
 
 interface EditorToolbarProps {
 	editorView: EditorView | null
@@ -21,89 +39,57 @@ export const EditorToolbar = memo(function EditorToolbar({
 	showLineNumbers,
 	onToggleLineNumbers,
 }: EditorToolbarProps) {
-	const [headingMenuOpen, setHeadingMenuOpen] = useState(false)
-	const headingTriggerRef = useRef<HTMLElement>(null)
-	const runHeadingCommand = (
-		command: EditorCommandDefinition,
-		details: HTMLDetailsElement | null,
-	) => {
-		if (!editorView) return
-
-		setHeadingMenuOpen(false)
-		details?.removeAttribute('open')
-		executeEditorCommand(editorView, command.id)
+	const runTextStyleCommand = (command: EditorCommandDefinition) => {
+		if (editorView) executeEditorCommand(editorView, command.id)
 	}
 
 	return (
 		<div className="editor-toolbar" role="group" aria-label="Markdown formatting">
-			<details
-				className={`toolbar-menu heading-menu${editorView ? '' : ' is-disabled'}`}
-				name="markdown-toolbar-menu"
-				open={headingMenuOpen}
-				onToggle={(event) => setHeadingMenuOpen(event.currentTarget.open)}
-				onKeyDown={(event) =>
-					handleToolbarMenuKeyDown({
-						event,
-						setOpen: setHeadingMenuOpen,
-						triggerRef: headingTriggerRef,
-					})
+			<ToolbarMenu
+				id="text-style"
+				label="Text style"
+				disabled={!editorView}
+				className="heading-menu"
+				menuClassName="heading-menu-popover"
+				restoreTriggerFocusOnSelect={false}
+				triggerContent={
+					<>
+						<MaterialIcon name="formatParagraph" />
+						<MaterialIcon name="arrowDropDown" className="toolbar-menu-chevron" />
+					</>
 				}
-			>
-				<summary
-					ref={headingTriggerRef}
-					className="toolbar-menu-trigger heading-menu-trigger"
-					role="button"
-					aria-label="Heading"
-					aria-disabled={!editorView}
-					aria-expanded={headingMenuOpen}
-					aria-haspopup="menu"
-					title="Heading"
-					onClick={(event) => {
-						if (!editorView) event.preventDefault()
-					}}
-				>
-					<span aria-hidden="true">H⌄</span>
-				</summary>
-				<div className="toolbar-menu-popover heading-menu-popover" role="menu">
-					{headingCommands.map((command, index) => (
-						<button
-							type="button"
-							role="menuitem"
-							key={command.id}
-							aria-label={`H${index + 1} Heading ${index + 1}`}
-							disabled={!editorView}
-							onClick={(event) =>
-								runHeadingCommand(command, event.currentTarget.closest('details'))
-							}
-						>
-							<span className="heading-menu-level">H{index + 1}</span>
-							<span>Heading {index + 1}</span>
-						</button>
-					))}
-				</div>
-			</details>
+				items={textStyleCommands.map((command) => ({
+					id: command.id,
+					label: command.label,
+					disabled: !editorView,
+					content: (
+						<>
+							<span className="heading-menu-level">{command.shortLabel}</span>
+							<span>{command.label}</span>
+						</>
+					),
+					onSelect: () => runTextStyleCommand(command),
+				}))}
+			/>
 
 			<div className="formatting-controls">
 				{formattingCommands.map((command, index) => {
 					const previousCommand = formattingCommands[index - 1]
 					const startsGroup = previousCommand && previousCommand.group !== command.group
-
 					return (
 						<button
 							className={`toolbar-button${startsGroup ? ' toolbar-group-start' : ''}`}
 							type="button"
 							key={command.id}
 							data-command={command.id}
-							aria-label={
-								command.id === 'orderedList' ? `1. ${command.label}` : command.label
-							}
+							aria-label={command.label}
 							title={command.title}
 							disabled={!editorView}
 							onClick={() =>
 								editorView && executeEditorCommand(editorView, command.id)
 							}
 						>
-							<span aria-hidden="true">{command.symbol}</span>
+							<MaterialIcon name={commandIcons[command.id]} />
 						</button>
 					)
 				})}
@@ -115,7 +101,7 @@ export const EditorToolbar = memo(function EditorToolbar({
 					title="Toggle line numbers"
 					onClick={onToggleLineNumbers}
 				>
-					<span aria-hidden="true">№</span>
+					<MaterialIcon name="numbers" />
 				</button>
 			</div>
 		</div>

@@ -1,4 +1,5 @@
 import { renderMarkdown } from '../preview/markdownRenderer'
+import { deriveDocumentIdentity } from '../document/domain/documentIdentity'
 
 export type DocumentFormat = 'markdown' | 'html'
 
@@ -28,20 +29,19 @@ export async function copyDocument(
 }
 
 export function createDocumentArtifact(markdown: string, format: DocumentFormat): DocumentArtifact {
-	const title = getDocumentTitle(markdown)
-	const basename = getSafeBasename(title)
+	const { title, safeBasename } = deriveDocumentIdentity(markdown)
 
 	if (format === 'markdown') {
 		return {
 			content: markdown,
-			filename: `${basename}.md`,
+			filename: `${safeBasename}.md`,
 			mimeType: 'text/markdown;charset=utf-8',
 		}
 	}
 
 	return {
 		content: createStandaloneHtml(markdown, title),
-		filename: `${basename}.html`,
+		filename: `${safeBasename}.html`,
 		mimeType: 'text/html;charset=utf-8',
 	}
 }
@@ -74,29 +74,6 @@ function createStandaloneHtml(markdown: string, title: string) {
 ${renderMarkdown(markdown)}
 </body>
 </html>`
-}
-
-function getDocumentTitle(markdown: string) {
-	const heading = /^\s{0,3}#\s+(.+?)\s*#*\s*$/m.exec(markdown)?.[1]
-	if (!heading) return 'Untitled'
-
-	return heading
-		.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-		.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-		.replace(/[*_~`]/g, '')
-		.trim()
-}
-
-function getSafeBasename(title: string) {
-	const basename = title
-		.normalize('NFKD')
-		.toLocaleLowerCase('en')
-		.replace(/[^\p{L}\p{N}]+/gu, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 80)
-		.replace(/-+$/g, '')
-
-	return basename || 'untitled'
 }
 
 function escapeHtml(value: string) {

@@ -1,3 +1,4 @@
+import { MaterialIcon } from '../../shared/components/MaterialIcon'
 import type { Theme } from './theme'
 
 interface ThemeToggleProps {
@@ -17,7 +18,7 @@ export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
 			title={`Switch to ${isDark ? 'light' : 'dark'} theme`}
 			onClick={onToggle}
 		>
-			<span aria-hidden="true">{isDark ? '☀' : '◐'}</span>
+			<MaterialIcon name={isDark ? 'lightMode' : 'darkMode'} />
 		</button>
 	)
 }

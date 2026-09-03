@@ -72,6 +72,14 @@ describe('document export', () => {
 		expect(createDocumentArtifact('# !!!', 'html').filename).toBe('untitled.html')
 	})
 
+	it('ignores headings inside fenced code when deriving download identity', () => {
+		const markdown = '```md\n# Not the title\n```\n\n# Real **Title**'
+		expect(createDocumentArtifact(markdown, 'markdown').filename).toBe('real-title.md')
+		expect(createDocumentArtifact(markdown, 'html').content).toContain(
+			'<title>Real Title</title>',
+		)
+	})
+
 	it('uses the same sanitized HTML for copy and standalone download', async () => {
 		const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) }
 		const sanitizedHtml = renderMarkdown(COMBINED_SECURITY_MARKDOWN)

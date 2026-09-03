@@ -1,6 +1,6 @@
 # Markdown Toolkit — Project State
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 ## Product
 
@@ -26,6 +26,15 @@ Production: https://markdown-toolkit.pages.dev/
 - Light/dark theme with persistence
 - Optional persisted line numbers
 - Markdown formatting toolbar and keyboard shortcuts
+- Compact branded application toolbar with three stable regions
+- Independently window-centred document filename
+- Right-side actions ordered as Copy, Download, AI Clean Up, then Theme
+- Shared accessible toolbar menus and individually bundled curated Material SVG files
+- First-H1 document identity shared by toolbar display and safe export filenames
+- One shared, accessible H1–H6 syntax colour in the CodeMirror editor
+- Image Markdown formatting through the shared editor command layer
+- One structural-border token with single ownership for header, footer, and split seams
+- Stable editor surface and caret/active-line focus feedback without a pane focus border
 - Copy Markdown / Copy HTML
 - Download Markdown / Download standalone HTML
 - Accessibility, security, and browser-compatibility hardening
@@ -39,7 +48,8 @@ Current hardening baseline:
 - Branch: `main`
 - AI POC commit: `e2d6b63 feat: add local AI cleanup POC`
 - The AI POC is committed and pushed.
-- Production-quality hardening is complete on `main` and is ready for its dedicated commit.
+- AI hardening commit: `565cea0 feat: harden local AI cleanup`
+- Production-quality AI hardening and Chrome manual acceptance are complete.
 
 ## Smart Markdown Autocomplete
 
@@ -151,14 +161,16 @@ WebLLM and other cross-browser local-AI fallbacks remain deferred.
 1. The Firefox autocomplete ghost baseline investigation is deferred and is outside the AI hardening scope.
 2. WebLLM and other cross-browser local-AI fallbacks remain deferred.
 3. The existing Vite >500 kB bundle warning remains accepted and unrelated.
-4. Accepted future work, not implemented in the current hardening milestone: a compact branded application header, filename derivation from the first H1, H1–H6 editor syntax colours, and preview-only Mermaid support.
+4. Synchronized editor/preview scrolling is the next planned feature and is not implemented.
+5. Preview-only Mermaid support remains accepted future work after synchronized scrolling or later UI acceptance.
+6. Reported deployed AI modal/output issues remain pending a separate AI task; toolbar work does not change AI behavior.
 
 ## QA / Validation
 
-Latest validation after AI hardening:
+Latest validation after the toolbar completion:
 
-- 23 test files
-- 232 tests passed
+- 29 test files
+- 270 tests passed
 - Lint passed
 - Build passed
 - Format check passed
@@ -169,7 +181,7 @@ Automated validation and manual Chrome acceptance both pass for the current feat
 
 ## Current Task
 
-Commit the accepted AI Clean Up hardening without including deferred autocomplete work or unrelated changes.
+Manually validate the compact toolbar, Image Markdown action and local icon, shared single-owner workspace seams, stable borderless editor focus treatment, independently centred filename, right-side Copy/Download/AI/Theme actions, line-number gutter spacing, first-H1 document identity, and shared editor H1–H6 colour. Synchronized scrolling is next; Mermaid and deployed AI modal/output fixes remain deferred.
 
 ## Development Workflow
 

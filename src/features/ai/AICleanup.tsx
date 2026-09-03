@@ -1,5 +1,6 @@
 import { useEffect, useId, useReducer, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { MaterialIcon } from '../../shared/components/MaterialIcon'
 import type { AIAvailability, AIProvider, AIProviderErrorCode } from './AIProvider'
 import { AIProviderError, isAIProviderError } from './AIProvider'
 import { readAIEnabledPreference, writeAIEnabledPreference } from './aiPreferences'
@@ -496,7 +497,7 @@ export function AICleanup({
 				aria-label="AI Clean Up"
 				title="AI Clean Up"
 			>
-				AI
+				<MaterialIcon name="autoAwesome" />
 			</button>
 			{isOpen
 				? createPortal(

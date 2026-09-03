@@ -2,3 +2,4 @@ node_modules
 dist
 coverage
 .serena
+src/assets/icons/material/*.svg

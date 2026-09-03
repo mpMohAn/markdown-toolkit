@@ -4,6 +4,7 @@ import { AICleanup } from '../features/ai/AICleanup'
 import type { AIProvider } from '../features/ai/AIProvider'
 import type { DocumentSession } from '../features/document/ui/useDocumentLifecycle'
 import { useDocumentLifecycle } from '../features/document/ui/useDocumentLifecycle'
+import { deriveDocumentIdentity } from '../features/document/domain/documentIdentity'
 import { EditorToolbar } from '../features/editor/EditorToolbar'
 import { DocumentActions } from '../features/export/DocumentActions'
 import { ThemeToggle } from '../features/theme/ThemeToggle'
@@ -11,6 +12,7 @@ import { useTheme } from '../features/theme/useTheme'
 import { MarkdownWorkspace } from '../features/workspace/MarkdownWorkspace'
 import { readLineNumbers, writeLineNumbers } from '../features/workspace/workspacePreferences'
 import { SkipLink } from '../shared/components/SkipLink'
+import { ToolbarMenuProvider } from '../shared/components/ToolbarMenu'
 
 export function AppShell({ aiProviderFactory }: { aiProviderFactory?: () => AIProvider } = {}) {
 	const { theme, toggleTheme } = useTheme()
@@ -30,31 +32,51 @@ export function AppShell({ aiProviderFactory }: { aiProviderFactory?: () => AIPr
 		() => getDocumentStatistics(documentContent),
 		[documentContent],
 	)
+	const documentIdentity = useMemo(
+		() => deriveDocumentIdentity(documentContent),
+		[documentContent],
+	)
 
 	return (
 		<div className="app-shell" data-theme={theme}>
 			<SkipLink targetId="main-content" />
 			<div className="app-toolbar" role="banner">
-				<div className="toolbar-content" role="toolbar" aria-label="Markdown tools">
-					<EditorToolbar
-						editorView={editorView}
-						showLineNumbers={showLineNumbers}
-						onToggleLineNumbers={toggleLineNumbers}
-					/>
-					{documentSession.document ? (
-						<DocumentActions content={documentSession.document.content} />
-					) : null}
-					{documentSession.document ? (
-						<AICleanup
-							content={documentSession.document.content}
-							onApply={documentSession.updateContent}
-							providerFactory={aiProviderFactory}
-						/>
-					) : null}
-					<div className="workspace-controls">
-						<ThemeToggle theme={theme} onToggle={toggleTheme} />
+				<ToolbarMenuProvider>
+					<div className="toolbar-content" role="toolbar" aria-label="Markdown Toolkit">
+						<div className="toolbar-region toolbar-region-left">
+							<div className="app-brand" role="img" aria-label="Markdown Toolkit">
+								<img src="/favicon-32x32.png" alt="" width="24" height="24" />
+							</div>
+							<EditorToolbar
+								editorView={editorView}
+								showLineNumbers={showLineNumbers}
+								onToggleLineNumbers={toggleLineNumbers}
+							/>
+						</div>
+						<div className="toolbar-region toolbar-region-center">
+							<div
+								className="toolbar-document-name"
+								title={documentIdentity.displayFilename}
+								aria-label={`Current document: ${documentIdentity.displayFilename}`}
+							>
+								{documentIdentity.displayFilename}
+							</div>
+						</div>
+						<div className="toolbar-region toolbar-region-right">
+							{documentSession.document ? (
+								<DocumentActions content={documentSession.document.content} />
+							) : null}
+							{documentSession.document ? (
+								<AICleanup
+									content={documentSession.document.content}
+									onApply={documentSession.updateContent}
+									providerFactory={aiProviderFactory}
+								/>
+							) : null}
+							<ThemeToggle theme={theme} onToggle={toggleTheme} />
+						</div>
 					</div>
-				</div>
+				</ToolbarMenuProvider>
 			</div>
 
 			<main className="app-main" id="main-content" tabIndex={-1}>

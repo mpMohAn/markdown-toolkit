@@ -1,3 +1,4 @@
+import { history, undo } from '@codemirror/commands'
 import { EditorSelection, EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -14,6 +15,7 @@ describe('editor commands', () => {
 			state: EditorState.create({
 				doc: content,
 				selection: EditorSelection.range(from, to),
+				extensions: [history()],
 			}),
 		})
 		return view
@@ -29,6 +31,14 @@ describe('editor commands', () => {
 		expect(run('heading1')).toBe('# Title')
 		expect(run('heading2')).toBe('## Title')
 		expect(run('heading2')).toBe('Title')
+	})
+
+	it('converts headings to paragraphs without changing non-heading structures', () => {
+		createView('## Title')
+		expect(run('paragraph')).toBe('Title')
+
+		createView('- item')
+		expect(run('paragraph')).toBe('- item')
 	})
 
 	it.each<[EditorCommandId, string]>([
@@ -85,6 +95,29 @@ describe('editor commands', () => {
 		expect(
 			view!.state.sliceDoc(view!.state.selection.main.from, view!.state.selection.main.to),
 		).toBe('url')
+	})
+
+	it('inserts an image with selected text as alt text and selects its URL', () => {
+		createView('Product screenshot', 0, 18)
+		expect(run('image')).toBe('![Product screenshot](https://)')
+		expect(
+			view!.state.sliceDoc(view!.state.selection.main.from, view!.state.selection.main.to),
+		).toBe('https://')
+		expect(undo(view!)).toBe(true)
+		expect(view!.state.doc.toString()).toBe('Product screenshot')
+	})
+
+	it('inserts an editable image placeholder for an empty selection', () => {
+		createView('', 0, 0)
+		expect(run('image')).toBe('![alt text](https://)')
+		expect(
+			view!.state.sliceDoc(view!.state.selection.main.from, view!.state.selection.main.to),
+		).toBe('https://')
+	})
+
+	it('conservatively collapses multiline image alt text', () => {
+		createView('first line\nsecond line')
+		expect(run('image')).toBe('![first line second line](https://)')
 	})
 
 	it('keeps a cursor on the same content when transforming its line', () => {

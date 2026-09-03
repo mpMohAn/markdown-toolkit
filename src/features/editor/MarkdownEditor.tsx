@@ -1,6 +1,8 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { deleteMarkupBackward, markdown } from '@codemirror/lang-markdown'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
+import { tags } from '@lezer/highlight'
 import { GFM } from '@lezer/markdown'
 import {
 	EditorView,
@@ -46,6 +48,7 @@ export const MarkdownEditor = memo(function MarkdownEditor({
 				doc: initialContent,
 				extensions: [
 					markdown({ extensions: GFM, addKeymap: false }),
+					syntaxHighlighting(markdownHeadingHighlightStyle),
 					markdownAutocomplete(),
 					lineNumbersCompartment.of(lineNumberExtensions(initialLineNumbers)),
 					placeholder('Start writing Markdown…'),
@@ -159,7 +162,8 @@ const editorTheme = EditorView.theme({
 	},
 	'.cm-lineNumbers .cm-gutterElement': {
 		minWidth: '2ch',
-		padding: '0 var(--space-1) 0 0',
+		padding: '0 var(--editor-gutter-gap) 0 0',
+		textAlign: 'right',
 		opacity: '0.62',
 	},
 	'.cm-lineNumbers .cm-activeLineGutter': {
@@ -179,7 +183,21 @@ const editorTheme = EditorView.theme({
 	'.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
 		backgroundColor: 'var(--color-selection)',
 	},
-	'&.cm-focused': {
-		boxShadow: 'inset 0 0 0 1px var(--color-interaction)',
-	},
 })
+
+const markdownHeadingHighlightStyle = HighlightStyle.define([
+	{
+		tag: [
+			tags.heading1,
+			tags.heading2,
+			tags.heading3,
+			tags.heading4,
+			tags.heading5,
+			tags.heading6,
+		],
+		color: 'var(--color-editor-heading)',
+	},
+	{ tag: [tags.heading1, tags.heading2], fontWeight: '700' },
+	{ tag: [tags.heading3, tags.heading4], fontWeight: '650' },
+	{ tag: [tags.heading5, tags.heading6], fontWeight: '600' },
+])

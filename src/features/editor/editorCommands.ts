@@ -2,6 +2,7 @@ import { EditorSelection, type SelectionRange } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
 
 export type EditorCommandId =
+	| 'paragraph'
 	| 'heading1'
 	| 'heading2'
 	| 'heading3'
@@ -12,6 +13,7 @@ export type EditorCommandId =
 	| 'italic'
 	| 'strikethrough'
 	| 'link'
+	| 'image'
 	| 'inlineCode'
 	| 'codeBlock'
 	| 'blockquote'
@@ -23,57 +25,68 @@ export interface EditorCommandDefinition {
 	id: EditorCommandId
 	label: string
 	title: string
-	symbol: string
+	shortLabel?: string
 	group: 'structure' | 'inline' | 'block'
 }
 
 export const EDITOR_COMMANDS: EditorCommandDefinition[] = [
+	{
+		id: 'paragraph',
+		label: 'Paragraph',
+		title: 'Paragraph',
+		shortLabel: 'P',
+		group: 'structure',
+	},
 	...([1, 2, 3, 4, 5, 6] as const).map((level) => ({
 		id: `heading${level}` as EditorCommandId,
 		label: `Heading ${level}`,
 		title: `Heading ${level}`,
-		symbol: `H${level}`,
+		shortLabel: `H${level}`,
 		group: 'structure' as const,
 	})),
-	{ id: 'bold', label: 'Bold', title: 'Bold (Ctrl/Cmd+B)', symbol: 'B', group: 'inline' },
-	{ id: 'italic', label: 'Italic', title: 'Italic (Ctrl/Cmd+I)', symbol: 'I', group: 'inline' },
+	{ id: 'bold', label: 'Bold', title: 'Bold (Ctrl/Cmd+B)', group: 'inline' },
+	{ id: 'italic', label: 'Italic', title: 'Italic (Ctrl/Cmd+I)', group: 'inline' },
 	{
 		id: 'strikethrough',
 		label: 'Strikethrough',
 		title: 'Strikethrough',
-		symbol: 'S',
 		group: 'inline',
 	},
-	{ id: 'link', label: 'Link', title: 'Link (Ctrl/Cmd+K)', symbol: '⌁', group: 'inline' },
-	{ id: 'inlineCode', label: 'Inline code', title: 'Inline code', symbol: '`', group: 'inline' },
-	{ id: 'codeBlock', label: 'Code block', title: 'Code block', symbol: '{…}', group: 'block' },
-	{ id: 'blockquote', label: 'Blockquote', title: 'Blockquote', symbol: '❯', group: 'block' },
+	{ id: 'link', label: 'Link', title: 'Link (Ctrl/Cmd+K)', group: 'inline' },
+	{ id: 'image', label: 'Insert image', title: 'Insert image', group: 'inline' },
+	{ id: 'inlineCode', label: 'Inline code', title: 'Inline code', group: 'inline' },
+	{ id: 'codeBlock', label: 'Code block', title: 'Code block', group: 'block' },
+	{ id: 'blockquote', label: 'Blockquote', title: 'Blockquote', group: 'block' },
 	{
 		id: 'unorderedList',
 		label: 'Unordered list',
 		title: 'Unordered list (Ctrl/Cmd+Shift+8)',
-		symbol: '•',
 		group: 'block',
 	},
 	{
 		id: 'orderedList',
 		label: 'Ordered list',
 		title: 'Ordered list (Ctrl/Cmd+Shift+7)',
-		symbol: '1.',
 		group: 'block',
 	},
-	{ id: 'taskList', label: 'Task list', title: 'Task list', symbol: '☐', group: 'block' },
+	{ id: 'taskList', label: 'Task list', title: 'Task list', group: 'block' },
 ]
 
 export function executeEditorCommand(view: EditorView, command: EditorCommandId): boolean {
-	if (command.startsWith('heading')) {
+	if (command === 'paragraph') {
+		transformLines(view, { kind: 'paragraph' })
+	} else if (command.startsWith('heading')) {
 		transformLines(view, { kind: 'heading', level: Number(command.at(-1)) })
 	} else {
-		const transformations: Record<Exclude<EditorCommandId, `heading${number}`>, () => void> = {
+		const transformations: Record<
+			Exclude<EditorCommandId, 'paragraph' | `heading${number}`>,
+			() => void
+		> = {
 			bold: () => toggleWrap(view, '**', '**', 'bold text'),
 			italic: () => toggleWrap(view, '*', '*', 'italic text'),
 			strikethrough: () => toggleWrap(view, '~~', '~~', 'strikethrough text'),
 			link: () => insertLink(view),
+			image: () => insertImage(view),
 			inlineCode: () => toggleWrap(view, '`', '`', 'code'),
 			codeBlock: () => toggleWrap(view, '```\n', '\n```', 'code'),
 			blockquote: () => transformLines(view, { kind: 'blockquote' }),
@@ -187,6 +200,34 @@ function insertLink(view: EditorView) {
 	)
 }
 
+function insertImage(view: EditorView) {
+	view.dispatch(
+		view.state.changeByRange((range) => {
+			const existingImage = findContainingImage(view.state.doc.toString(), range)
+			if (existingImage) {
+				return {
+					changes: [],
+					range: EditorSelection.range(existingImage.urlFrom, existingImage.urlTo),
+				}
+			}
+
+			// Markdown image alt text cannot contain a line break, so multiline selections
+			// are conservatively collapsed to readable single-space-separated text.
+			const selectedText = view.state.sliceDoc(range.from, range.to)
+			const normalizedAltText = selectedText.replace(/\s+/g, ' ').trim()
+			const altText = normalizedAltText || 'alt text'
+			const url = 'https://'
+			const insert = `![${altText}](${url})`
+			const urlFrom = range.from + altText.length + 4
+
+			return {
+				changes: { from: range.from, to: range.to, insert },
+				range: EditorSelection.range(urlFrom, urlFrom + url.length),
+			}
+		}),
+	)
+}
+
 function findContainingLink(content: string, range: SelectionRange) {
 	const linkPattern = /\[[^\]\n]+\]\(([^)\n]+)\)/g
 	for (const match of content.matchAll(linkPattern)) {
@@ -201,9 +242,24 @@ function findContainingLink(content: string, range: SelectionRange) {
 	return null
 }
 
+function findContainingImage(content: string, range: SelectionRange) {
+	const imagePattern = /!\[[^\]\n]*\]\(([^)\n]+)\)/g
+	for (const match of content.matchAll(imagePattern)) {
+		const from = match.index
+		const to = from + match[0].length
+		if (range.from >= from && range.to <= to) {
+			const urlFrom = from + match[0].lastIndexOf(match[1])
+			return { urlFrom, urlTo: urlFrom + match[1].length }
+		}
+	}
+
+	return null
+}
+
 type LineKind = 'plain' | 'heading' | 'blockquote' | 'unorderedList' | 'orderedList' | 'taskList'
 
 interface LineParts {
+	source: string
 	indent: string
 	content: string
 	kind: LineKind
@@ -212,6 +268,7 @@ interface LineParts {
 }
 
 type LineTarget =
+	| { kind: 'paragraph' }
 	| { kind: 'heading'; level: number }
 	| { kind: 'blockquote' }
 	| { kind: 'unorderedList' }
@@ -273,6 +330,7 @@ function parseLine(text: string): LineParts {
 
 	const indent = /^\s*/.exec(text)?.[0] ?? ''
 	return {
+		source: text,
 		indent,
 		content: text.slice(indent.length),
 		kind: 'plain',
@@ -282,6 +340,7 @@ function parseLine(text: string): LineParts {
 
 function lineParts(match: RegExpExecArray, kind: LineKind, level?: number): LineParts {
 	return {
+		source: match[0],
 		indent: match[1],
 		content: match.at(-1) ?? '',
 		kind,
@@ -300,6 +359,11 @@ function formatLine(
 	index: number,
 	removeTarget: boolean,
 ): TransformedLine {
+	if (target.kind === 'paragraph') {
+		return line.kind === 'heading'
+			? withMarker(line, '')
+			: { text: line.source, contentColumn: line.contentColumn }
+	}
 	if (removeTarget) return withMarker(line, '')
 	if (target.kind === 'heading') return withMarker(line, `${'#'.repeat(target.level)} `)
 	if (target.kind === 'blockquote') return withMarker(line, '> ')
