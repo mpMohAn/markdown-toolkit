@@ -37,6 +37,10 @@
 	--color-code-surface: oklch(91.5% 0.007 85);
 	--color-quote-surface: oklch(93.5% 0.006 85);
 	--color-link: oklch(38% 0.035 260);
+	--color-progress-track: oklch(88% 0.008 85);
+	--color-progress-fill: oklch(48% 0.012 260);
+	--color-progress-border: oklch(76% 0.01 85);
+	--color-progress-indeterminate: oklch(57% 0.012 260);
 }
 
 [data-theme='dark'] {
@@ -56,4 +60,8 @@
 	--color-code-surface: oklch(13.5% 0.008 285);
 	--color-quote-surface: oklch(20.5% 0.008 285);
 	--color-link: oklch(82% 0.025 260);
+	--color-progress-track: oklch(24% 0.01 285);
+	--color-progress-fill: oklch(70% 0.012 260);
+	--color-progress-border: oklch(38% 0.012 285);
+	--color-progress-indeterminate: oklch(62% 0.012 260);
 }

@@ -37,7 +37,11 @@ describe('Markdown cleanup', () => {
 	})
 
 	it('rejects empty model output', () => {
-		expect(() => validateCleanupOutput('  \n')).toThrow('empty suggestion')
+		expect(() => validateCleanupOutput('  \n')).toThrow('EMPTY_OUTPUT')
+	})
+
+	it('rejects output containing a null character', () => {
+		expect(() => validateCleanupOutput('# unsafe\0output')).toThrow('GENERATION_FAILED')
 	})
 
 	it('removes a clearly accidental Markdown response wrapper', () => {
@@ -46,7 +50,7 @@ describe('Markdown cleanup', () => {
 
 	it('does not run for an empty document', async () => {
 		const provider = providerWithOutput('# impossible')
-		await expect(cleanupMarkdown(provider, '   ')).rejects.toThrow('no Markdown')
+		await expect(cleanupMarkdown(provider, '   ')).rejects.toThrow('EMPTY_OUTPUT')
 		expect(provider.generate).not.toHaveBeenCalled()
 	})
 })

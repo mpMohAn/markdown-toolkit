@@ -1,6 +1,7 @@
 import type { EditorView } from '@codemirror/view'
 import { useCallback, useMemo, useState } from 'react'
 import { AICleanup } from '../features/ai/AICleanup'
+import type { AIProvider } from '../features/ai/AIProvider'
 import type { DocumentSession } from '../features/document/ui/useDocumentLifecycle'
 import { useDocumentLifecycle } from '../features/document/ui/useDocumentLifecycle'
 import { EditorToolbar } from '../features/editor/EditorToolbar'
@@ -11,7 +12,7 @@ import { MarkdownWorkspace } from '../features/workspace/MarkdownWorkspace'
 import { readLineNumbers, writeLineNumbers } from '../features/workspace/workspacePreferences'
 import { SkipLink } from '../shared/components/SkipLink'
 
-export function AppShell() {
+export function AppShell({ aiProviderFactory }: { aiProviderFactory?: () => AIProvider } = {}) {
 	const { theme, toggleTheme } = useTheme()
 	const documentSession = useDocumentLifecycle()
 	const [editorView, setEditorView] = useState<EditorView | null>(null)
@@ -47,6 +48,7 @@ export function AppShell() {
 						<AICleanup
 							content={documentSession.document.content}
 							onApply={documentSession.updateContent}
+							providerFactory={aiProviderFactory}
 						/>
 					) : null}
 					<div className="workspace-controls">

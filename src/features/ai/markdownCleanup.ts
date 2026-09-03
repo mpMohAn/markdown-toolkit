@@ -1,4 +1,5 @@
 import type { AIGenerationResult, AIProvider } from './AIProvider'
+import { AIProviderError } from './AIProvider'
 
 export interface MarkdownCleanupResult extends AIGenerationResult {
 	markdown: string
@@ -35,7 +36,7 @@ export async function cleanupMarkdown(
 	sourceMarkdown: string,
 	options?: Parameters<AIProvider['generate']>[1],
 ): Promise<MarkdownCleanupResult> {
-	if (!sourceMarkdown.trim()) throw new Error('There is no Markdown to clean up.')
+	if (!sourceMarkdown.trim()) throw new AIProviderError('EMPTY_OUTPUT')
 
 	const generation = await provider.generate(buildMarkdownCleanupPrompt(sourceMarkdown), options)
 	const markdown = validateCleanupOutput(generation.text)
@@ -44,12 +45,14 @@ export async function cleanupMarkdown(
 }
 
 export function validateCleanupOutput(output: string): string {
-	if (!output.trim()) throw new Error('Local AI returned an empty suggestion.')
+	if (!output.trim()) throw new AIProviderError('EMPTY_OUTPUT')
+	if (output.includes('\0')) throw new AIProviderError('GENERATION_FAILED')
 
 	const trimmed = output.trim()
 	const accidentalWrapper = /^```(?:markdown|md)[\t ]*\r?\n([\s\S]*?)\r?\n```$/i.exec(trimmed)
 	const markdown = accidentalWrapper?.[1] ?? output
 
-	if (!markdown.trim()) throw new Error('Local AI returned an empty suggestion.')
+	if (!markdown.trim()) throw new AIProviderError('EMPTY_OUTPUT')
+	if (markdown.includes('\0')) throw new AIProviderError('GENERATION_FAILED')
 	return markdown
 }

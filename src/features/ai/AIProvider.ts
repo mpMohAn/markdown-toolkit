@@ -1,6 +1,32 @@
 export type AIAvailability =
 	'unsupported' | 'unavailable' | 'downloadable' | 'downloading' | 'available'
 
+export type AIProviderErrorCode =
+	| 'UNSUPPORTED'
+	| 'UNAVAILABLE'
+	| 'AVAILABILITY_CHECK_FAILED'
+	| 'SESSION_EXPIRED'
+	| 'SETUP_STALLED'
+	| 'OPERATION_CANCELLED'
+	| 'INPUT_TOO_LARGE'
+	| 'CONTEXT_MEASUREMENT_UNAVAILABLE'
+	| 'EMPTY_OUTPUT'
+	| 'GENERATION_FAILED'
+
+export class AIProviderError extends Error {
+	readonly code: AIProviderErrorCode
+
+	constructor(code: AIProviderErrorCode) {
+		super(code)
+		this.name = 'AIProviderError'
+		this.code = code
+	}
+}
+
+export function isAIProviderError(error: unknown): error is AIProviderError {
+	return error instanceof AIProviderError
+}
+
 export interface AISetupOptions {
 	signal?: AbortSignal
 	onDownloadProgress?: (progress: number) => void
@@ -31,11 +57,4 @@ export interface AIProvider {
 	initialize(systemPrompt: string, options?: AISetupOptions): Promise<AISetupResult>
 	generate(prompt: string, options?: AIGenerationOptions): Promise<AIGenerationResult>
 	dispose(): void
-}
-
-export class AIDocumentTooLargeError extends Error {
-	constructor() {
-		super('This document is too large for the local AI model in this POC.')
-		this.name = 'AIDocumentTooLargeError'
-	}
 }

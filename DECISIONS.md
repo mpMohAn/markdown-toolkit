@@ -112,7 +112,7 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Local model download/setup must begin from explicit user action rather than silently on page load.
 - AI failures must preserve the original document.
 - Do not browser-sniff for Chrome, Firefox, Arc, or Chromium. Use capability/state detection.
-- The current AI Clean Up implementation remains explicitly a POC until its shipping/commit strategy is deliberately accepted.
+- AI Clean Up remains visibly labelled experimental because it depends on Chrome's evolving Prompt API, but its current guarded feature scope is accepted for shipping.
 
 ### AI session isolation
 
@@ -134,13 +134,34 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 
 - Distinguish unsupported from present-but-stalled setup.
 - Model setup has a 40-second inactivity watchdog; advancing download progress resets it.
+- Display a setup percentage only when it comes from a genuine browser `downloadprogress` event. Preparation without measurable progress is indeterminate, and time-based or fabricated setup percentages are prohibited.
+- Repeated or decreasing browser progress does not advance the UI or reset the setup watchdog. Once genuine download progress reaches completion, session creation is described as finalizing rather than manufacturing a completion value.
 - Retry starts fresh setup state rather than relying on a stale aborted setup.
 - Do not use a fake inference percentage.
 - Do not apply a short timeout to legitimate inference simply because generation is slow.
 
+### AI enablement preference
+
+- Successful explicit AI enablement is remembered under the versioned local preference key `markdown-toolkit:ai-enabled:v1` with the value `true`.
+- Only enablement consent is persisted. Providers, model sessions, availability results, setup state, documents, prompts, suggestions, errors, and metrics are never stored in this preference.
+- Runtime capability always overrides remembered enablement. Unsupported, unavailable, or unknown runtime states never become ready based on the saved preference.
+- Page load never checks capability, creates a session, or initiates a model download. Opening AI Clean Up is the explicit interaction that starts capability detection and, when enablement is remembered, the normal visible preparation flow.
+- Preference storage failures are non-disruptive. A successful runtime session remains usable even when its preference cannot be saved.
+
 ### AI development metrics
 
 Development-only AI diagnostics may include timing, availability/session state, character counts, context usage/window where available, and result status. They must never contain the user's Markdown/document content.
+
+### AI hardening boundaries
+
+- AI UI state uses an explicit discriminated state model. Session readiness is represented by the state rather than coordinated through an independent readiness flag.
+- Every setup and generation operation has a unique identity. Late callbacks are ignored after cancellation, replacement, or unmount.
+- Session recovery is visible. An expired session is cleared and reported; retry uses the normal cancellable setup flow and inactivity watchdog. Generation must not recreate a base session invisibly.
+- The full cleanup prompt is submitted only after the provider's supported context-measurement API confirms it fits. Missing or failed measurement rejects the operation before prompting.
+- Once a cleanup review becomes stale because the source changed, it never becomes valid automatically, even if the document later returns to byte-for-byte identical content. The user must regenerate or cancel.
+- Provider and browser failures cross into React only as typed, content-free error categories. User-facing messages are controlled application copy; arbitrary browser error messages are never rendered or recorded in diagnostics.
+- The production AI provider is owned by one React effect lifecycle. Development Strict Mode cleanup disposes that lifecycle's provider, and the following setup creates a fresh provider rather than reusing a disposed instance.
+- Capability detection has a short watchdog independent of the model-setup watchdog. It never creates or downloads the model, ignores late availability results, and exposes a controlled retry state.
 
 ## Security / Privacy
 
@@ -195,5 +216,9 @@ Deferred beyond V1 or the current POC includes:
 - GitHub integration inside the product
 - command palette
 - synchronized editor/preview scrolling
+- compact branded application header
+- filename derivation from the first H1
+- distinct H1–H6 editor syntax colours
+- preview-only Mermaid rendering
 
 Update this file when a durable decision changes. Do not use it as a temporary task log; temporary/current status belongs in `PROJECT-STATE.md`.

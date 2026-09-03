@@ -34,16 +34,12 @@ Production: https://markdown-toolkit.pages.dev/
 
 ## Repository / Working State
 
-Latest locally reported Codex state before these project-document updates:
+Current hardening baseline:
 
-- Local branch: `main`
-- Local HEAD: `ea44512 feat: add smart markdown autocomplete`
-- Nothing staged
-- 11 uncommitted files total
-  - 4 modified tracked files
-  - 7 new AI files
-
-Important: `PROJECT-STATE.md` and `DECISIONS.md` are maintained directly in GitHub as shared project context. The local checkout may therefore be behind remote `main` until those documentation commits are fetched/integrated.
+- Branch: `main`
+- AI POC commit: `e2d6b63 feat: add local AI cleanup POC`
+- The AI POC is committed and pushed.
+- Production-quality hardening is complete on `main` and is ready for its dedicated commit.
 
 ## Smart Markdown Autocomplete
 
@@ -78,12 +74,7 @@ Interaction:
 - Enter does not accept it
 - With no suggestion, Tab keeps normal CodeMirror indentation
 
-### Ghost rendering — current uncommitted state
-
-Modified locally:
-
-- `src/features/editor/autocomplete/markdownAutocompleteExtension.ts`
-- `src/features/editor/autocomplete/markdownAutocompleteExtension.test.ts`
+### Ghost rendering
 
 Current implementation:
 
@@ -110,22 +101,9 @@ Investigation findings:
 
 Do not claim this Firefox hypothesis as confirmed until Firefox geometry is measured or another CodeMirror-native cause is demonstrated.
 
-## Local AI Clean Up POC — uncommitted
+## Local AI Clean Up — hardening accepted
 
-The experimental AI Clean Up implementation is currently in the local working tree and has not yet been committed.
-
-New files under `src/features/ai/`:
-
-- `AIProvider.ts`
-- `chromeBuiltInAIProvider.ts`
-- `markdownCleanup.ts`
-- `AICleanup.tsx`
-- Three focused AI test files
-
-Related modified tracked files:
-
-- `AppShell.tsx` — adds the AI toolbar control
-- `index.css` — review modal, streaming/progress states, responsive layout, and development metrics styling
+The experimental AI Clean Up POC was committed and pushed in `e2d6b63`. Its production hardening and Chrome manual acceptance are now complete on `main`.
 
 Implemented behavior:
 
@@ -143,50 +121,55 @@ Implemented behavior:
 - Unsupported and stalled setup states remain distinct
 - Development-only metrics contain timing/count data and never Markdown content
 
+Current hardening adds:
+
+- A discriminated AI UI state model
+- Operation identities, mounted checks, abort guards, and timer cleanup
+- Typed provider errors with controlled user-facing messages
+- Strict context measurement before any document prompt is submitted
+- Explicit active-clone ownership and idempotent provider disposal
+- Visible session-expiry recovery through the normal setup flow
+- Irreversible stale-review state when the source document changes
+- Modal focus containment, inert background content, Escape handling, and focus restoration
+- Strict Mode-safe effect lifecycle ownership with a fresh provider per production lifecycle
+- A separate four-second availability-check watchdog with controlled retry
+- A versioned local AI enablement preference that stores only explicit user consent
+- Capability checking and remembered session preparation begin only when the AI dialog opens
+- Genuine Chrome `downloadprogress` reporting with indeterminate preparation and finalizing states; fabricated or time-driven setup percentages are prohibited
+
 Manual status:
 
 - Chrome: functionally working
 - Firefox: Chrome `LanguageModel` API unavailable; editor remains usable
 - Arc: model setup can stall; watchdog provides a controlled readiness failure
-- POC status: experimental; shipping/commit strategy is still undecided
+- Feature status: Chrome manual acceptance passed, including genuine setup progress and dark-mode progress visibility
 
 WebLLM and other cross-browser local-AI fallbacks remain deferred.
 
-## Pending Decisions Before Commit
+## Deferred Work
 
-1. Whether the experimental AI Clean Up POC should ship in the next commit or remain isolated on a POC branch
-2. Whether to retain the inherited ghost typography declarations; they are harmless in Chrome but did not solve Firefox
-3. How to address Firefox baseline alignment after better Firefox-specific evidence is available
-4. Continue deferring the existing Vite >500 kB bundle warning; it predates this browser investigation and has no demonstrated regression tied to the current work
+1. The Firefox autocomplete ghost baseline investigation is deferred and is outside the AI hardening scope.
+2. WebLLM and other cross-browser local-AI fallbacks remain deferred.
+3. The existing Vite >500 kB bundle warning remains accepted and unrelated.
+4. Accepted future work, not implemented in the current hardening milestone: a compact branded application header, filename derivation from the first H1, H1–H6 editor syntax colours, and preview-only Mermaid support.
 
 ## QA / Validation
 
-Most recent complete reported local validation:
+Latest validation after AI hardening:
 
-- 21 test files
-- 178 tests passed
+- 23 test files
+- 232 tests passed
 - Lint passed
 - Build passed
 - Format check passed
 - `git diff --check` passed
 - Existing Vite >500 kB JavaScript chunk warning remains
 
-These results cover the current uncommitted implementation as last reported by Codex. They do not replace manual browser acceptance.
+Automated validation and manual Chrome acceptance both pass for the current feature scope.
 
 ## Current Task
 
-Resolve or make an evidence-based decision on the remaining Firefox ghost-text baseline alignment issue without browser sniffing or arbitrary pixel offsets.
-
-Preferred order:
-
-1. Gather trustworthy Firefox-specific evidence if possible
-2. Keep the current WidgetType architecture while investigating
-3. Prefer the smallest CodeMirror-native fix
-4. Keep prediction/autocomplete behavior unchanged
-5. Manually verify Firefox and Chrome
-6. Only consider a cursor-coordinate overlay if WidgetType cannot be made reliable
-
-Separately, decide whether the AI POC belongs in the next accepted commit or should remain isolated for further experimentation.
+Commit the accepted AI Clean Up hardening without including deferred autocomplete work or unrelated changes.
 
 ## Development Workflow
 

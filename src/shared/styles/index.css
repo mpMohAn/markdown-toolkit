@@ -227,6 +227,7 @@ a {
 	grid-template-rows: auto minmax(0, 1fr);
 	width: min(68rem, 100%);
 	max-height: min(48rem, calc(100vh - 2rem));
+	max-height: min(48rem, calc(100dvh - 2rem));
 	border: var(--border-width) solid var(--color-border);
 	border-radius: var(--radius-md);
 	background: var(--color-preview-surface);
@@ -338,16 +339,63 @@ a {
 	min-width: 5rem;
 	padding: var(--space-1) var(--space-3);
 }
-.ai-download-progress {
+.ai-progress {
 	display: grid;
 	max-width: 24rem;
 	gap: var(--space-1);
 	color: var(--color-text-muted);
 	font-size: 0.8125rem;
 }
-.ai-download-progress progress {
+.ai-progress__bar {
+	appearance: none;
+	-webkit-appearance: none;
 	width: 100%;
-	accent-color: var(--color-interaction-hover);
+	height: 7px;
+	overflow: hidden;
+	border: var(--border-width) solid var(--color-progress-border);
+	border-radius: 2px;
+	background-color: var(--color-progress-track);
+}
+.ai-progress__bar::-webkit-progress-bar {
+	background-color: var(--color-progress-track);
+}
+.ai-progress__bar--determinate::-webkit-progress-value {
+	background-color: var(--color-progress-fill);
+}
+.ai-progress__bar--determinate::-moz-progress-bar {
+	background-color: var(--color-progress-fill);
+}
+.ai-progress__bar--indeterminate {
+	background-image: linear-gradient(
+		90deg,
+		transparent 0,
+		transparent 35%,
+		var(--color-progress-indeterminate) 35%,
+		var(--color-progress-indeterminate) 65%,
+		transparent 65%
+	);
+	background-position: 100% 0;
+	background-size: 220% 100%;
+	background-repeat: no-repeat;
+	animation: ai-progress-indeterminate 1.4s linear infinite;
+}
+.ai-progress__bar--indeterminate::-webkit-progress-bar,
+.ai-progress__bar--indeterminate::-webkit-progress-value {
+	background-color: transparent;
+}
+.ai-progress__bar--indeterminate::-moz-progress-bar {
+	background-color: transparent;
+}
+@keyframes ai-progress-indeterminate {
+	to {
+		background-position: -100% 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.ai-progress__bar--indeterminate {
+		background-position: center;
+		animation: none;
+	}
 }
 .ai-poc-metrics {
 	margin-top: var(--space-4);
