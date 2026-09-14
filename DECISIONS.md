@@ -19,7 +19,7 @@ This file records durable product, architecture, UX, and engineering decisions s
 - Toolbar and status areas should remain compact.
 - Accessibility and usable hit/focus targets must not be sacrificed for compactness.
 - The application toolbar uses three stable regions: brand and formatting on the left, the document filename independently centred relative to the window, and document/application actions on the right.
-- The right action order is Copy, Download, AI Clean Up, then Theme. The filename truncates or hides before essential controls are removed.
+- The right action order is Copy, Download, AI writing, then Theme. The filename truncates or hides before essential controls are removed.
 - The approved compact Markdown Toolkit favicon asset is reused as the toolbar brand; reference-project names, logos, fonts, and utility CSS are not runtime dependencies.
 - Toolbar controls use only individually selected Google Material SVG files bundled under `src/assets/icons/material/` and rendered as current-colour masks. Runtime Google Fonts, icon fonts, icon CDNs, and full icon libraries are prohibited.
 - Text style, Copy, Download, and future toolbar menus share one accessible menu primitive: a single menu may be open, native button triggers expose menu state, arrow/Home/End/Escape behavior is supported, Tab closes naturally, and outside listeners are cleaned up.
@@ -37,6 +37,12 @@ This file records durable product, architecture, UX, and engineering decisions s
 - Header bottom, footer top, and split boundaries use `--color-workspace-border`. Each structural seam has one border owner; editor and preview panes do not add adjacent desktop split borders.
 - Editor focus does not change pane borders or surface colours. The caret, selection, and active-line treatment provide editor-state feedback; the keyboard splitter retains its own focus-visible treatment.
 - Image formatting follows the Link command pattern through the shared editor command layer and inserts Markdown image syntax only. It does not upload, select, paste, or fetch image files.
+- Format Markdown is deterministic, synchronous, local-only, and independent of AI capability. It conservatively normalizes Markdown outside fenced code and applies through one CodeMirror transaction.
+
+## Synchronized Scrolling
+
+- Synchronized editor/preview scrolling is rejected and removed because anchor-based, bidirectional, and proportional experiments did not remain reliable as editor wrapping and preview geometry changed.
+- Editor and preview scroll independently. Do not add another synchronization implementation unless a future design demonstrates reliable behavior through manual acceptance.
 
 ## Document Identity
 
@@ -129,7 +135,9 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Local model download/setup must begin from explicit user action rather than silently on page load.
 - AI failures must preserve the original document.
 - Do not browser-sniff for Chrome, Firefox, Arc, or Chromium. Use capability/state detection.
-- AI Clean Up remains visibly labelled experimental because it depends on Chrome's evolving Prompt API, but its current guarded feature scope is accepted for shipping.
+- The toolbar entry is labelled AI writing and remains visibly experimental because it depends on Chrome's evolving Prompt API.
+- The ready dialog offers Improve writing, Structure notes, and Summarize. The application selects the action outside JSON-encoded untrusted Markdown data; document instructions cannot change it.
+- Capability guidance is state-based: a missing/incompatible API requires a supported Chrome desktop runtime, while a present API reporting unavailable identifies the local model as unavailable on that device.
 
 ### AI session isolation
 
@@ -141,11 +149,31 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 
 ### AI streaming and application
 
-- Use `promptStreaming()` for progressive local output when supported by the chosen provider implementation.
-- Throttle UI updates rather than mutating React state for every tiny stream event.
-- Streaming output belongs in the review experience, not directly in CodeMirror.
+- The Chrome provider may use `promptStreaming()` internally for compatibility, but it collects the stream into one validated final result.
+- React receives no partial model output. While generation runs, the review shows a static accessible status; the complete suggestion appears only after successful completion.
 - Applying a completed suggestion must use the existing document update/autosave path.
 - Cancel must leave the original Markdown unchanged.
+
+### Background AI operations
+
+- Initial capability checks, enablement consent, model download, and session preparation remain visible modal operations. Only document generation runs in the background.
+- Selecting Improve writing, Structure notes, or Summarize captures the action and exact source, starts one cancellable operation, closes the modal, and returns control to the editor.
+- AI operation state is a discriminated state model. The toolbar exposes compact idle, working, ready, outdated, and controlled-error states without animation or fabricated progress.
+- Complete and failed operations use an application-local polite notification. Notifications request no browser permission, persist nothing, and never contain document-derived text.
+- Dismissing a notification does not discard its review. Completed output remains reachable from the AI toolbar until it is applied or explicitly cancelled.
+- Editing never aborts an active generation. It irreversibly marks the captured result outdated; even restoring identical source does not make that result applicable again.
+- Background source snapshots, suggestions, operation identities, abort controllers, and notification state are memory-only and are intentionally lost on refresh.
+- Closing, escaping, or clicking outside the working-status dialog continues generation. Only the explicit Cancel AI action aborts it.
+- This background workflow completes the planned feature scope for the current release, subject to manual Chrome acceptance.
+
+### Mermaid preview
+
+- Mermaid fences render only in preview and never alter the CodeMirror source.
+- Mermaid is a pinned local dependency and is dynamically imported only when a preview contains a Mermaid fence.
+- Rendering uses Mermaid strict security mode with HTML labels disabled. Generated SVG crosses a second application-owned sanitization boundary before insertion.
+- Diagram operations carry a render identity so stale asynchronous output cannot replace a newer preview or theme render.
+- Mermaid validates syntax with suppressed parser errors before rendering. Every render uses a per-block owned temporary host and explicitly removes it on success, failure, staleness, and unmount.
+- Invalid diagrams show one controlled error inside their preview block. Mermaid's built-in error SVG, parser text, and temporary render nodes must never be attached outside that block.
 
 ### AI setup behavior
 
@@ -162,12 +190,15 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Successful explicit AI enablement is remembered under the versioned local preference key `markdown-toolkit:ai-enabled:v1` with the value `true`.
 - Only enablement consent is persisted. Providers, model sessions, availability results, setup state, documents, prompts, suggestions, errors, and metrics are never stored in this preference.
 - Runtime capability always overrides remembered enablement. Unsupported, unavailable, or unknown runtime states never become ready based on the saved preference.
-- Page load never checks capability, creates a session, or initiates a model download. Opening AI Clean Up is the explicit interaction that starts capability detection and, when enablement is remembered, the normal visible preparation flow.
+- Page load never checks capability, creates a session, or initiates a model download. Opening AI writing is the explicit interaction that starts capability detection and, when enablement is remembered, the normal visible preparation flow.
 - Preference storage failures are non-disruptive. A successful runtime session remains usable even when its preference cannot be saved.
 
-### AI development metrics
+### AI dialog presentation
 
-Development-only AI diagnostics may include timing, availability/session state, character counts, context usage/window where available, and result status. They must never contain the user's Markdown/document content.
+- The ready chooser is intentionally minimal: its visible content is the AI writing heading and the three writing actions. Longer action explanations live in accessible titles rather than persistent body copy.
+- Close is the sole dismissal control for the ready chooser and completed/outdated reviews. Closing a completed review preserves it for later access from the toolbar.
+- Redundant Cancel actions are omitted when Close has the same behavior. Cancel AI remains in the working dialog because it explicitly aborts background generation, unlike Close or Continue in background.
+- The POC metrics panel and its React presentation state are not part of the production UI. Do not replace them with hidden DOM, console logging, telemetry, or persistence.
 
 ### AI hardening boundaries
 
@@ -232,7 +263,5 @@ Deferred beyond V1 or the current POC includes:
 - collaboration
 - GitHub integration inside the product
 - command palette
-- synchronized editor/preview scrolling
-- preview-only Mermaid rendering
 
 Update this file when a durable decision changes. Do not use it as a temporary task log; temporary/current status belongs in `PROJECT-STATE.md`.

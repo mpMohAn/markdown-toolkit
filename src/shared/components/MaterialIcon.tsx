@@ -7,6 +7,7 @@ import codeBlocks from '../../assets/icons/material/code_blocks.svg'
 import contentCopy from '../../assets/icons/material/content_copy.svg'
 import darkMode from '../../assets/icons/material/dark_mode.svg'
 import download from '../../assets/icons/material/download.svg'
+import formatAlignLeft from '../../assets/icons/material/format_align_left.svg'
 import formatBold from '../../assets/icons/material/format_bold.svg'
 import formatItalic from '../../assets/icons/material/format_italic.svg'
 import formatListBulleted from '../../assets/icons/material/format_list_bulleted.svg'
@@ -28,6 +29,7 @@ const icons = {
 	contentCopy,
 	darkMode,
 	download,
+	formatAlignLeft,
 	formatBold,
 	formatItalic,
 	formatListBulleted,

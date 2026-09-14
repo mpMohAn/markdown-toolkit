@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderMarkdown } from './markdownRenderer'
+import { renderMarkdown, renderPreviewMarkdown } from './markdownRenderer'
 
 describe('renderMarkdown', () => {
 	it('renders supported Markdown and GFM constructs', () => {
@@ -52,5 +52,39 @@ const value = 1
 		expect(html).not.toContain('onerror')
 		expect(html).not.toContain('javascript:')
 		expect(html).not.toContain('window.hacked')
+	})
+})
+
+describe('renderPreviewMarkdown', () => {
+	it('keeps ordinary fences as code and extracts Mermaid fences as trusted placeholders', () => {
+		const rendered = renderPreviewMarkdown(
+			`\`\`\`js\nconst value = 1\n\`\`\`\n\n\`\`\`mermaid\nflowchart TD\n A --> B\n\`\`\``,
+		)
+
+		expect(rendered.html).toContain('<pre><code class="language-js">')
+		expect(rendered.html).toContain('class="mermaid-diagram"')
+		expect(rendered.html).toContain('aria-label="Mermaid diagram"')
+		expect(rendered.mermaidBlocks).toHaveLength(1)
+		expect(rendered.mermaidBlocks[0]?.source).toContain('flowchart TD')
+	})
+
+	it('assigns distinct stable IDs to multiple diagrams', () => {
+		const source = `\`\`\`mermaid\nflowchart TD\n A --> B\n\`\`\`\n\n\`\`\`mermaid\nsequenceDiagram\n A->>B: Hi\n\`\`\``
+		const first = renderPreviewMarkdown(source)
+		const second = renderPreviewMarkdown(source)
+
+		expect(new Set(first.mermaidBlocks.map(({ id }) => id)).size).toBe(2)
+		expect(second.mermaidBlocks.map(({ id }) => id)).toEqual(
+			first.mermaidBlocks.map(({ id }) => id),
+		)
+	})
+
+	it('does not let raw HTML inject a trusted Mermaid placeholder', () => {
+		const rendered = renderPreviewMarkdown(
+			'<div class="mermaid-diagram" data-mermaid-id="mermaid-hostile">bad</div>',
+		)
+
+		expect(rendered.mermaidBlocks).toEqual([])
+		expect(rendered.html).not.toContain('data-mermaid-id')
 	})
 })

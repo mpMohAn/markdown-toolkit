@@ -44,12 +44,26 @@ describe('AppShell AI integration', () => {
 		const user = userEvent.setup()
 		const provider = createProvider()
 		render(<AppShell aiProviderFactory={() => provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Review' }))
 		await user.click(await screen.findByRole('button', { name: 'Apply' }))
 
 		expect(lifecycle.updateContent).toHaveBeenCalledOnce()
 		expect(lifecycle.updateContent).toHaveBeenCalledWith('# Cleaned')
+	})
+
+	it('formats Markdown without invoking the AI provider', async () => {
+		const user = userEvent.setup()
+		const provider = createProvider()
+		render(<AppShell aiProviderFactory={() => provider} />)
+
+		await user.click(await screen.findByRole('button', { name: 'Format Markdown' }))
+
+		expect(provider.getAvailability).not.toHaveBeenCalled()
+		expect(provider.initialize).not.toHaveBeenCalled()
+		expect(provider.generate).not.toHaveBeenCalled()
+		expect(screen.queryByRole('dialog', { name: 'AI writing' })).not.toBeInTheDocument()
 	})
 })

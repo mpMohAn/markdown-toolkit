@@ -5,12 +5,17 @@ import type { AIAvailability, AIProvider, AIProviderErrorCode } from './AIProvid
 import { AIProviderError, isAIProviderError } from './AIProvider'
 import { readAIEnabledPreference, writeAIEnabledPreference } from './aiPreferences'
 import { ChromeBuiltInAIProvider } from './chromeBuiltInAIProvider'
-import { cleanupMarkdown, MARKDOWN_CLEANUP_SYSTEM_PROMPT } from './markdownCleanup'
+import {
+	AI_WRITING_SYSTEM_PROMPT,
+	runMarkdownWritingAction,
+	type AIWritingAction,
+} from './markdownCleanup'
 
 type PassiveState = Exclude<AIAvailability, never>
 type ReviewState = {
 	source: string
 	suggestion: string
+	action: AIWritingAction
 }
 
 type AIState =
@@ -22,14 +27,16 @@ type AIState =
 			progress: number | null
 	  }
 	| { status: 'ready' }
-	| ({ status: 'running'; slow: boolean } & ReviewState)
-	| ({ status: 'review' } & ReviewState)
-	| ({ status: 'stale-review'; reason: string } & ReviewState)
+	| ({ status: 'running'; slow: boolean; outdated: boolean } & ReviewState)
+	| ({ status: 'review'; notification: boolean } & ReviewState)
+	| ({ status: 'stale-review'; reason: string; notification: boolean } & ReviewState)
 	| {
 			status: 'error'
 			message: string
 			retry: 'availability' | 'setup' | 'generation'
 			code: AIProviderErrorCode
+			action?: AIWritingAction
+			notification?: boolean
 	  }
 
 type AIAction =
@@ -38,31 +45,19 @@ type AIAction =
 	| { type: 'preparing' }
 	| { type: 'progress'; progress: number }
 	| { type: 'ready' }
-	| { type: 'running'; source: string }
-	| { type: 'partial'; suggestion: string }
+	| { type: 'running'; source: string; action: AIWritingAction }
 	| { type: 'slow' }
 	| { type: 'review'; suggestion: string }
 	| { type: 'stale'; reason: string }
+	| { type: 'dismiss-notification' }
 	| {
 			type: 'error'
 			message: string
 			retry: 'availability' | 'setup' | 'generation'
 			code: AIProviderErrorCode
+			action?: AIWritingAction
+			notification?: boolean
 	  }
-
-interface POCMetrics {
-	availability?: AIAvailability
-	sessionStatus?: 'not-ready' | 'ready' | 'generating' | 'error'
-	setupDurationMs?: number
-	generationDurationMs?: number
-	inputCharacters?: number
-	outputCharacters?: number
-	contextUsage?: number
-	contextWindow?: number
-	downloadProgressPercent?: number
-	result?: 'success' | 'failure' | 'cancelled'
-	errorCategory?: AIProviderErrorCode
-}
 
 interface AICleanupProps {
 	content: string
@@ -76,7 +71,7 @@ interface AICleanupProps {
 const DEFAULT_AVAILABILITY_WATCHDOG_MS = 4_000
 const DEFAULT_SETUP_WATCHDOG_MS = 40_000
 const STALE_MESSAGE =
-	'The document changed after this cleanup started. Regenerate from the current document.'
+	'The document changed after this writing action started. Regenerate from the current document.'
 
 export function AICleanup({
 	content,
@@ -88,7 +83,6 @@ export function AICleanup({
 }: AICleanupProps) {
 	const [isOpen, setIsOpen] = useState(false)
 	const [state, dispatch] = useReducer(aiReducer, { status: 'checking' })
-	const [metrics, setMetrics] = useState<POCMetrics>({ sessionStatus: 'not-ready' })
 	const stateRef = useRef(state)
 	const providerFactoryRef = useRef<() => AIProvider>(
 		providedProviderFactory ??
@@ -100,12 +94,11 @@ export function AICleanup({
 	const operationRef = useRef(0)
 	const operationKindRef = useRef<'availability' | 'setup' | 'generation' | null>(null)
 	const abortRef = useRef<AbortController | null>(null)
-	const partialUpdateRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-	const pendingPartialRef = useRef('')
 	const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const availabilityWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const setupWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const setupProgressRef = useRef<number | null>(null)
+	const selectedActionRef = useRef<AIWritingAction>('improve-writing')
 	const availabilityRef = useRef<AIAvailability>('unsupported')
 	const headingId = useId()
 	const dialogRef = useRef<HTMLElement>(null)
@@ -138,7 +131,6 @@ export function AICleanup({
 
 	useEffect(() => {
 		if ((state.status === 'running' || state.status === 'review') && content !== state.source) {
-			if (state.status === 'running') invalidateOperation()
 			dispatch({ type: 'stale', reason: STALE_MESSAGE })
 		}
 	}, [content, state])
@@ -158,7 +150,7 @@ export function AICleanup({
 		const onDocumentKeyDown = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
 				event.preventDefault()
-				cancel()
+				closeFromDialog()
 			}
 		}
 		const onFocusIn = (event: FocusEvent) => {
@@ -182,15 +174,12 @@ export function AICleanup({
 	}, [isOpen])
 
 	function clearTimers() {
-		if (partialUpdateRef.current) clearTimeout(partialUpdateRef.current)
 		if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
 		if (availabilityWatchdogRef.current) clearTimeout(availabilityWatchdogRef.current)
 		if (setupWatchdogRef.current) clearTimeout(setupWatchdogRef.current)
-		partialUpdateRef.current = null
 		slowTimerRef.current = null
 		availabilityWatchdogRef.current = null
 		setupWatchdogRef.current = null
-		pendingPartialRef.current = ''
 	}
 
 	function invalidateOperation() {
@@ -230,7 +219,6 @@ export function AICleanup({
 			clearTimers()
 			availabilityRef.current = availability
 			dispatch({ type: 'availability', availability })
-			setMetrics((current) => ({ ...current, availability }))
 			if (
 				rememberedEnablementRef.current &&
 				openRef.current &&
@@ -263,10 +251,22 @@ export function AICleanup({
 	}
 
 	function open() {
-		if (openRef.current || !content.trim()) return
+		const current = stateRef.current
+		const hasStoredOperation =
+			current.status === 'running' ||
+			current.status === 'review' ||
+			current.status === 'stale-review' ||
+			(current.status === 'error' && current.action !== undefined)
+		if (openRef.current || (!content.trim() && !hasStoredOperation)) return
 		openRef.current = true
 		setIsOpen(true)
-		const current = stateRef.current
+		if (
+			current.status === 'review' ||
+			current.status === 'stale-review' ||
+			(current.status === 'error' && current.action !== undefined)
+		) {
+			dispatch({ type: 'dismiss-notification' })
+		}
 		if (
 			current.status === 'checking' ||
 			(current.status === 'error' && current.retry === 'availability')
@@ -274,6 +274,26 @@ export function AICleanup({
 			void checkAvailability()
 		} else if (rememberedEnablementRef.current && canPrepareFrom(current.status)) {
 			void enable()
+		}
+	}
+
+	function closeDialog() {
+		if (!openRef.current) return
+		openRef.current = false
+		setIsOpen(false)
+	}
+
+	function closeFromDialog() {
+		const current = stateRef.current
+		if (
+			current.status === 'running' ||
+			current.status === 'review' ||
+			current.status === 'stale-review' ||
+			(current.status === 'error' && current.action !== undefined)
+		) {
+			closeDialog()
+		} else {
+			cancel()
 		}
 	}
 
@@ -303,7 +323,6 @@ export function AICleanup({
 		) {
 			dispatch({ type: 'availability', availability: availabilityRef.current })
 		}
-		setMetrics((current) => ({ ...current, result: 'cancelled' }))
 		setIsOpen(false)
 	}
 
@@ -324,17 +343,13 @@ export function AICleanup({
 		dispatch({ type: 'preparing' })
 		armSetupWatchdog(operation)
 		try {
-			const setup = await provider.initialize(MARKDOWN_CLEANUP_SYSTEM_PROMPT, {
+			await provider.initialize(AI_WRITING_SYSTEM_PROMPT, {
 				signal: operation.controller.signal,
 				onDownloadProgress: (progress) => {
 					if (!isCurrent(operation.id, operation.controller)) return
 					if (setupProgressRef.current === null || progress > setupProgressRef.current) {
 						setupProgressRef.current = progress
 						dispatch({ type: 'progress', progress })
-						setMetrics((currentMetrics) => ({
-							...currentMetrics,
-							downloadProgressPercent: progress * 100,
-						}))
 						armSetupWatchdog(operation)
 					}
 				},
@@ -344,14 +359,6 @@ export function AICleanup({
 			writeAIEnabledPreference()
 			rememberedEnablementRef.current = true
 			dispatch({ type: 'ready' })
-			setMetrics((currentMetrics) => ({
-				...currentMetrics,
-				sessionStatus: 'ready',
-				setupDurationMs: setup.setupDurationMs,
-				contextUsage: setup.contextUsage,
-				contextWindow: setup.contextWindow,
-				errorCategory: undefined,
-			}))
 		} catch (error) {
 			if (!isCurrent(operation.id, operation.controller)) return
 			clearTimers()
@@ -374,7 +381,7 @@ export function AICleanup({
 		}, setupWatchdogMs)
 	}
 
-	async function run() {
+	async function run(requestedAction?: AIWritingAction) {
 		if (operationKindRef.current) return
 		const provider = providerRef.current
 		if (!provider) return
@@ -390,54 +397,50 @@ export function AICleanup({
 			dispatch({
 				type: 'error',
 				code: 'EMPTY_OUTPUT',
-				message: 'There is no Markdown to clean up.',
+				message: 'There is no Markdown for this writing action.',
 				retry: 'generation',
 			})
 			return
 		}
 
+		const retainedAction =
+			current.status === 'stale-review' || current.status === 'error'
+				? current.action
+				: undefined
+		const action = requestedAction ?? retainedAction ?? selectedActionRef.current
+		selectedActionRef.current = action
 		const operation = beginOperation('generation')
 		const source = content
-		dispatch({ type: 'running', source })
-		setMetrics((currentMetrics) => ({
-			...currentMetrics,
-			sessionStatus: 'generating',
-			inputCharacters: source.length,
-			outputCharacters: 0,
-			result: undefined,
-			errorCategory: undefined,
-		}))
+		dispatch({ type: 'running', source, action })
+		closeDialog()
 		slowTimerRef.current = setTimeout(() => {
 			if (isCurrent(operation.id, operation.controller)) dispatch({ type: 'slow' })
 		}, 5000)
 
 		try {
-			const result = await cleanupMarkdown(provider, source, {
+			const result = await runMarkdownWritingAction(provider, action, source, {
 				signal: operation.controller.signal,
-				onUpdate: (partial) => schedulePartialUpdate(partial, operation),
 			})
 			if (!isCurrent(operation.id, operation.controller)) return
 			clearTimers()
 			dispatch({ type: 'review', suggestion: result.markdown })
-			setMetrics((currentMetrics) => ({
-				...currentMetrics,
-				sessionStatus: 'ready',
-				generationDurationMs: result.generationDurationMs,
-				outputCharacters: result.markdown.length,
-				contextUsage: result.contextUsage,
-				contextWindow: result.contextWindow,
-				result: 'success',
-			}))
 		} catch (error) {
 			if (!isCurrent(operation.id, operation.controller)) return
 			clearTimers()
-			showControlledError(error, 'generation')
+			showControlledError(error, 'generation', action)
 		} finally {
 			if (isCurrent(operation.id, operation.controller)) {
 				abortRef.current = null
 				operationKindRef.current = null
 			}
 		}
+	}
+
+	function cancelGeneration() {
+		if (stateRef.current.status !== 'running') return
+		invalidateOperation()
+		dispatch({ type: 'ready' })
+		closeDialog()
 	}
 
 	function apply() {
@@ -454,37 +457,35 @@ export function AICleanup({
 		setIsOpen(false)
 	}
 
-	function showControlledError(error: unknown, phase: 'availability' | 'setup' | 'generation') {
+	function showControlledError(
+		error: unknown,
+		phase: 'availability' | 'setup' | 'generation',
+		action?: AIWritingAction,
+	) {
 		const code = isAIProviderError(error) ? error.code : 'GENERATION_FAILED'
 		const retry =
 			phase === 'availability' ? 'availability' : code === 'SESSION_EXPIRED' ? 'setup' : phase
-		dispatch({ type: 'error', code, message: getErrorMessage(code, phase), retry })
-		setMetrics((current) => ({
-			...current,
-			sessionStatus: retry === 'generation' ? 'ready' : 'error',
-			result: 'failure',
-			errorCategory: code,
-		}))
-	}
-
-	function schedulePartialUpdate(
-		partial: string,
-		operation: { id: number; controller: AbortController },
-	) {
-		if (!isCurrent(operation.id, operation.controller)) return
-		pendingPartialRef.current = partial
-		if (partialUpdateRef.current) return
-		partialUpdateRef.current = setTimeout(() => {
-			partialUpdateRef.current = null
-			if (isCurrent(operation.id, operation.controller)) {
-				dispatch({ type: 'partial', suggestion: pendingPartialRef.current })
-			}
-		}, 50)
+		dispatch({
+			type: 'error',
+			code,
+			message: getErrorMessage(code, phase),
+			retry,
+			action,
+			notification: phase === 'generation',
+		})
 	}
 
 	const hasReview =
 		state.status === 'running' || state.status === 'review' || state.status === 'stale-review'
 	const emptyCurrentDocument = !content.trim()
+	const toolbarPresentation = getToolbarPresentation(state)
+	const notification = getNotification(state)
+	const triggerDisabled =
+		emptyCurrentDocument &&
+		state.status !== 'running' &&
+		state.status !== 'review' &&
+		state.status !== 'stale-review' &&
+		!(state.status === 'error' && state.action !== undefined)
 
 	return (
 		<>
@@ -492,19 +493,36 @@ export function AICleanup({
 				type="button"
 				ref={triggerRef}
 				className="toolbar-menu-trigger ai-cleanup-trigger"
-				disabled={emptyCurrentDocument}
+				disabled={triggerDisabled}
 				onClick={open}
-				aria-label="AI Clean Up"
-				title="AI Clean Up"
+				aria-label={toolbarPresentation.label}
+				title={toolbarPresentation.label}
 			>
 				<MaterialIcon name="autoAwesome" />
+				<span className="ai-cleanup-trigger__label">{toolbarPresentation.visible}</span>
 			</button>
+			{notification ? (
+				<div className="ai-notification" role="status" aria-live="polite">
+					<span>{notification.text}</span>
+					<div className="ai-notification__actions">
+						<button type="button" onClick={open}>
+							{notification.openLabel}
+						</button>
+						<button
+							type="button"
+							onClick={() => dispatch({ type: 'dismiss-notification' })}
+						>
+							Dismiss
+						</button>
+					</div>
+				</div>
+			) : null}
 			{isOpen
 				? createPortal(
 						<div
 							className="ai-review-backdrop"
 							onMouseDown={(event) => {
-								if (event.target === event.currentTarget) cancel()
+								if (event.target === event.currentTarget) closeFromDialog()
 							}}
 						>
 							<section
@@ -517,16 +535,19 @@ export function AICleanup({
 							>
 								<header className="ai-review-header">
 									<div>
-										<h2 id={headingId}>AI Clean Up</h2>
-										<p>
-											Experimental · Chrome built-in AI · local to this device
-										</p>
+										<h2 id={headingId}>AI writing</h2>
+										{state.status === 'ready' ? null : (
+											<p>
+												Experimental · Chrome built-in AI · local to this
+												device
+											</p>
+										)}
 									</div>
 									<button
 										type="button"
 										ref={closeButtonRef}
-										onClick={cancel}
-										aria-label="Cancel AI Clean Up"
+										onClick={closeFromDialog}
+										aria-label="Close AI writing"
 									>
 										×
 									</button>
@@ -567,16 +588,17 @@ export function AICleanup({
 		>
 		return (
 			<>
-				{state.status === 'stale-review' ? (
+				{state.status === 'stale-review' ||
+				(state.status === 'running' && state.outdated) ? (
 					<p className="ai-generation-status" role="alert">
-						{state.reason}
+						{state.status === 'stale-review' ? state.reason : STALE_MESSAGE}
 					</p>
 				) : (
 					<p className="ai-generation-status" role="status">
 						{state.status === 'running'
 							? state.slow
 								? 'Still working locally…'
-								: 'Generating suggestion…'
+								: 'Working locally…'
 							: 'Suggestion ready for review.'}
 					</p>
 				)}
@@ -584,50 +606,55 @@ export function AICleanup({
 					<p role="alert">Add Markdown before regenerating.</p>
 				) : null}
 				<div className="ai-review-columns">
-					<section>
-						<h3>Original</h3>
-						<pre aria-label="Original Markdown">{reviewState.source}</pre>
-					</section>
-					<section>
-						<h3>Suggestion</h3>
-						<pre aria-label="AI suggestion">
-							{reviewState.suggestion ||
-								(state.status === 'running' ? 'Generating…' : '')}
-							{state.status === 'running' ? (
-								<span className="ai-stream-cursor" aria-hidden="true">
-									{' '}
-									▌
-								</span>
-							) : null}
-						</pre>
-					</section>
+					{state.status === 'running' ? (
+						<section className="ai-working-summary">
+							<h3>Selected action</h3>
+							<p>{getActionLabel(state.action)}</p>
+						</section>
+					) : (
+						<>
+							<section>
+								<h3>Original</h3>
+								<pre aria-label="Original Markdown">{reviewState.source}</pre>
+							</section>
+							<section>
+								<h3>Suggestion</h3>
+								<pre aria-label="AI suggestion">{reviewState.suggestion}</pre>
+							</section>
+						</>
+					)}
 				</div>
 				<div className="ai-review-actions">
-					<button type="button" onClick={cancel}>
-						Cancel
-					</button>
-					{state.status === 'stale-review' ? (
-						<button type="button" onClick={run} disabled={emptyCurrentDocument}>
+					{state.status === 'running' ? (
+						<>
+							<button type="button" onClick={closeDialog}>
+								Continue in background
+							</button>
+							<button type="button" onClick={cancelGeneration}>
+								Cancel AI
+							</button>
+						</>
+					) : state.status === 'stale-review' ? (
+						<button
+							type="button"
+							onClick={() => void run(reviewState.action)}
+							disabled={emptyCurrentDocument}
+						>
 							Regenerate
 						</button>
 					) : (
-						<button
-							type="button"
-							onClick={apply}
-							disabled={state.status !== 'review' || !reviewState.suggestion}
-						>
+						<button type="button" onClick={apply} disabled={!reviewState.suggestion}>
 							Apply
 						</button>
 					)}
 				</div>
-				<DevelopmentMetrics metrics={metrics} />
 			</>
 		)
 	}
 
 	function renderSetup() {
 		if (state.status === 'unsupported') {
-			return <p>Local AI isn't available in this browser or device yet.</p>
+			return <p>Local AI requires a supported Chrome desktop browser and device.</p>
 		}
 		if (state.status === 'unavailable') {
 			return <p>Chrome's local AI model is unavailable on this device.</p>
@@ -649,7 +676,7 @@ export function AICleanup({
 					</p>
 				) : null}
 				{emptyCurrentDocument ? (
-					<p role="alert">Add Markdown before running AI Clean Up.</p>
+					<p role="alert">Add Markdown before running an AI writing action.</p>
 				) : null}
 				{state.status === 'downloadable' ||
 				state.status === 'downloading' ||
@@ -688,23 +715,50 @@ export function AICleanup({
 							</div>
 						) : null}
 					</>
-				) : state.status !== 'error' ? (
+				) : state.status !== 'error' && state.status !== 'ready' ? (
 					<p>The suggestion will not change your document until you choose Apply.</p>
 				) : null}
 				<div className="ai-review-actions">
-					<button type="button" onClick={cancel}>
-						Cancel
-					</button>
 					{state.status === 'ready' ? (
-						<button type="button" onClick={run} disabled={emptyCurrentDocument}>
-							Run Clean Up
-						</button>
+						<div className="ai-writing-actions" aria-label="AI writing actions">
+							<button
+								type="button"
+								aria-label="Improve writing"
+								title="Improve grammar, clarity, and concision while preserving meaning and facts"
+								onClick={() => void run('improve-writing')}
+								disabled={emptyCurrentDocument}
+							>
+								Improve writing
+							</button>
+							<button
+								type="button"
+								aria-label="Structure notes"
+								title="Organize existing material with useful headings and lists without inventing information"
+								onClick={() => void run('structure-notes')}
+								disabled={emptyCurrentDocument}
+							>
+								Structure notes
+							</button>
+							<button
+								type="button"
+								aria-label="Summarize"
+								title="Create a concise Markdown summary using only facts supported by the source"
+								onClick={() => void run('summarize')}
+								disabled={emptyCurrentDocument}
+							>
+								Summarize
+							</button>
+						</div>
 					) : state.status === 'error' && state.retry === 'availability' ? (
 						<button type="button" onClick={() => void checkAvailability()}>
 							Retry
 						</button>
 					) : state.status === 'error' && state.retry === 'generation' ? (
-						<button type="button" onClick={run} disabled={emptyCurrentDocument}>
+						<button
+							type="button"
+							onClick={() => void run()}
+							disabled={emptyCurrentDocument}
+						>
 							Try Again
 						</button>
 					) : (
@@ -721,7 +775,6 @@ export function AICleanup({
 						</button>
 					)}
 				</div>
-				<DevelopmentMetrics metrics={metrics} />
 			</>
 		)
 	}
@@ -744,30 +797,64 @@ function aiReducer(state: AIState, action: AIAction): AIState {
 		case 'ready':
 			return { status: 'ready' }
 		case 'running':
-			return { status: 'running', source: action.source, suggestion: '', slow: false }
-		case 'partial':
-			return state.status === 'running' ? { ...state, suggestion: action.suggestion } : state
+			return {
+				status: 'running',
+				source: action.source,
+				suggestion: '',
+				action: action.action,
+				slow: false,
+				outdated: false,
+			}
 		case 'slow':
 			return state.status === 'running' ? { ...state, slow: true } : state
 		case 'review':
 			return state.status === 'running'
-				? { status: 'review', source: state.source, suggestion: action.suggestion }
+				? state.outdated
+					? {
+							status: 'stale-review',
+							source: state.source,
+							suggestion: action.suggestion,
+							action: state.action,
+							reason: STALE_MESSAGE,
+							notification: true,
+						}
+					: {
+							status: 'review',
+							source: state.source,
+							suggestion: action.suggestion,
+							action: state.action,
+							notification: true,
+						}
 				: state
 		case 'stale':
-			return state.status === 'running' || state.status === 'review'
-				? {
-						status: 'stale-review',
-						source: state.source,
-						suggestion: state.suggestion,
-						reason: action.reason,
-					}
-				: state
+			return state.status === 'running'
+				? state.outdated
+					? state
+					: { ...state, outdated: true }
+				: state.status === 'review'
+					? {
+							status: 'stale-review',
+							source: state.source,
+							suggestion: state.suggestion,
+							action: state.action,
+							reason: action.reason,
+							notification: state.notification,
+						}
+					: state
+		case 'dismiss-notification':
+			return state.status === 'review' || state.status === 'stale-review'
+				? { ...state, notification: false }
+				: state.status === 'error'
+					? { ...state, notification: false }
+					: state
 		case 'error':
 			return {
 				status: 'error',
 				message: action.message,
 				retry: action.retry,
 				code: action.code,
+				action: action.action,
+				notification: action.notification,
 			}
 	}
 }
@@ -781,7 +868,7 @@ function getErrorMessage(
 	}
 	switch (code) {
 		case 'UNSUPPORTED':
-			return "Local AI isn't available in this browser or device yet."
+			return 'Local AI requires a supported Chrome desktop browser and device.'
 		case 'UNAVAILABLE':
 			return "Chrome's local AI model is unavailable on this device."
 		case 'AVAILABILITY_CHECK_FAILED':
@@ -799,7 +886,7 @@ function getErrorMessage(
 		case 'EMPTY_OUTPUT':
 			return 'Local AI returned no usable Markdown suggestion.'
 		case 'GENERATION_FAILED':
-			return 'Local AI could not clean up this document. Try again.'
+			return 'Local AI could not complete this writing action. Try again.'
 	}
 }
 
@@ -815,21 +902,44 @@ function canPrepareFrom(status: AIState['status']): boolean {
 	return status === 'available' || status === 'downloadable' || status === 'downloading'
 }
 
-function DevelopmentMetrics({ metrics }: { metrics: POCMetrics }) {
-	if (!import.meta.env.DEV) return null
-	return (
-		<details className="ai-poc-metrics">
-			<summary>POC metrics</summary>
-			<dl>
-				{Object.entries(metrics).map(([key, value]) =>
-					value === undefined ? null : (
-						<div key={key}>
-							<dt>{key}</dt>
-							<dd>{typeof value === 'number' ? Math.round(value) : value}</dd>
-						</div>
-					),
-				)}
-			</dl>
-		</details>
-	)
+function getActionLabel(action: AIWritingAction): string {
+	switch (action) {
+		case 'improve-writing':
+			return 'Improve writing'
+		case 'structure-notes':
+			return 'Structure notes'
+		case 'summarize':
+			return 'Summarize'
+	}
+}
+
+function getToolbarPresentation(state: AIState): { visible: string; label: string } {
+	if (state.status === 'running') {
+		return state.outdated
+			? { visible: 'AI · Outdated', label: 'AI writing: result will be outdated' }
+			: { visible: 'AI · Working', label: 'AI writing: working locally' }
+	}
+	if (state.status === 'review') {
+		return { visible: 'AI · Ready', label: 'AI writing: review ready' }
+	}
+	if (state.status === 'stale-review') {
+		return { visible: 'AI · Outdated', label: 'AI writing: review outdated' }
+	}
+	if (state.status === 'error' && state.action !== undefined) {
+		return { visible: 'AI · Error', label: 'AI writing: action failed' }
+	}
+	return { visible: 'AI', label: 'AI writing' }
+}
+
+function getNotification(state: AIState): { text: string; openLabel: 'Review' | 'Open' } | null {
+	if (state.status === 'review' && state.notification) {
+		return { text: 'AI review ready', openLabel: 'Review' }
+	}
+	if (state.status === 'stale-review' && state.notification) {
+		return { text: 'AI review is outdated', openLabel: 'Review' }
+	}
+	if (state.status === 'error' && state.notification) {
+		return { text: 'AI writing failed', openLabel: 'Open' }
+	}
+	return null
 }

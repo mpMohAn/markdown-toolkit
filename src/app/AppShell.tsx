@@ -86,6 +86,7 @@ export function AppShell({ aiProviderFactory }: { aiProviderFactory?: () => AIPr
 						onContentChange={documentSession.updateContent}
 						onEditorReady={handleEditorReady}
 						showLineNumbers={showLineNumbers}
+						theme={theme}
 					/>
 				) : (
 					<section className="workspace-loading" aria-live="polite" aria-busy="true">

@@ -192,7 +192,6 @@ export class ChromeBuiltInAIProvider implements AIProvider {
 					throw new AIProviderError('OPERATION_CANCELLED')
 				}
 				text += chunk
-				options.onUpdate?.(text)
 			}
 			if (operation.controller.signal.aborted || lifecycleVersion !== this.lifecycleVersion) {
 				throw new AIProviderError('OPERATION_CANCELLED')

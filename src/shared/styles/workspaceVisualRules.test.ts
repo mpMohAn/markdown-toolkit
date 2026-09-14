@@ -31,14 +31,17 @@ describe('workspace visual rules', () => {
 	it('keeps editor surfaces and boundaries independent of editor focus', () => {
 		expect(styles).not.toMatch(/(?:editor-pane|markdown-editor).*:focus-within/)
 		expect(editorSource).not.toContain("'&.cm-focused':")
+		expect(rule('.markdown-editor .cm-editor.cm-focused')).toContain('outline: none')
 		expect(editorSource).toContain("backgroundColor: 'var(--color-editor-surface)'")
 	})
 
 	it('retains a focus-visible state for the keyboard splitter', () => {
 		expect(styles).toContain('.workspace-divider:focus-visible::after')
 		expect(
-			rule('.workspace-divider:hover::after,\n.workspace-divider:focus-visible::after'),
-		).toContain('background: var(--color-interaction-hover)')
+			rule(
+				'.workspace-divider:hover::after,\n.workspace-divider:focus-visible::after,\n.workspace-divider:active::after',
+			),
+		).toContain('background: var(--color-workspace-border-hover)')
 	})
 })
 

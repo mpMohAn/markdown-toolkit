@@ -1,6 +1,6 @@
 # Markdown Toolkit — Project State
 
-Last updated: 2026-09-03
+Last updated: 2026-09-14
 
 ## Product
 
@@ -28,13 +28,16 @@ Production: https://markdown-toolkit.pages.dev/
 - Markdown formatting toolbar and keyboard shortcuts
 - Compact branded application toolbar with three stable regions
 - Independently window-centred document filename
-- Right-side actions ordered as Copy, Download, AI Clean Up, then Theme
+- Right-side actions ordered as Copy, Download, AI writing, then Theme
 - Shared accessible toolbar menus and individually bundled curated Material SVG files
 - First-H1 document identity shared by toolbar display and safe export filenames
 - One shared, accessible H1–H6 syntax colour in the CodeMirror editor
 - Image Markdown formatting through the shared editor command layer
 - One structural-border token with single ownership for header, footer, and split seams
 - Stable editor surface and caret/active-line focus feedback without a pane focus border
+- Independent editor and preview scrolling; synchronized scrolling was rejected and removed
+- Deterministic, synchronous Format Markdown action with one-step undo
+- Preview-only Mermaid fences, lazy-loaded from the pinned local dependency
 - Copy Markdown / Copy HTML
 - Download Markdown / Download standalone HTML
 - Accessibility, security, and browser-compatibility hardening
@@ -111,25 +114,24 @@ Investigation findings:
 
 Do not claim this Firefox hypothesis as confirmed until Firefox geometry is measured or another CodeMirror-native cause is demonstrated.
 
-## Local AI Clean Up — hardening accepted
+## Local AI writing — hardening retained
 
-The experimental AI Clean Up POC was committed and pushed in `e2d6b63`. Its production hardening and Chrome manual acceptance are now complete on `main`.
+The experimental AI Clean Up POC was committed and pushed in `e2d6b63`. Its provider and lifecycle hardening remain in place, and the current release expands the review flow into three accepted AI writing actions.
 
 Implemented behavior:
 
 - Chrome `LanguageModel` capability detection only; no browser sniffing
 - No hosted AI, API keys, application inference network calls, new AI SDKs, or new dependencies
 - Explicit Enable AI action before local model creation/download
-- One reusable warm base session containing static cleanup instructions only
-- Fresh cloned session per cleanup to avoid cross-document context contamination
-- `promptStreaming()` with throttled progressive rendering
+- One reusable warm base session containing static writing instructions only
+- Fresh cloned session per writing action to avoid cross-document context contamination
+- `promptStreaming()` collected inside the provider; React displays only the complete validated suggestion
 - Original Markdown stays untouched until explicit Apply
 - Cancel aborts setup or generation
 - Apply uses the existing document update/autosave path
 - 40-second inactivity watchdog for stalled model setup
 - Advancing `downloadprogress` resets the watchdog
 - Unsupported and stalled setup states remain distinct
-- Development-only metrics contain timing/count data and never Markdown content
 
 Current hardening adds:
 
@@ -146,13 +148,32 @@ Current hardening adds:
 - A versioned local AI enablement preference that stores only explicit user consent
 - Capability checking and remembered session preparation begin only when the AI dialog opens
 - Genuine Chrome `downloadprogress` reporting with indeterminate preparation and finalizing states; fabricated or time-driven setup percentages are prohibited
+- Non-blocking document generation: choosing a writing action closes the modal while the captured source is processed in memory
+- Compact toolbar states for working, ready, outdated, and controlled failure
+- Application-local, non-persistent completion notifications with Review/Open and Dismiss actions
+- Complete suggestions appear only in the later review dialog and still require explicit Apply
+- Edits made during generation irreversibly mark that operation outdated without aborting it
+- Working operations remain cancellable from the status dialog; ordinary dialog closure continues generation
+- The ready chooser is intentionally limited to Improve writing, Structure notes, and Summarize, with details retained as accessible titles rather than persistent explanatory copy
+- Completed and outdated reviews rely on the dialog Close control instead of a duplicate Cancel action; the distinct Cancel AI action remains available while generation is running
+- The former POC metrics panel and its React-only diagnostic state have been removed
+
+Mermaid failure containment:
+
+- Mermaid source is validated with suppressed parser errors before rendering
+- Each valid render uses a uniquely identified temporary host owned by its assigned preview block rather than `document.body`
+- Owned temporary render nodes are removed after success, failure, stale output, and preview unmount
+- Invalid syntax produces only the controlled inline `Unable to render Mermaid diagram.` message
 
 Manual status:
 
 - Chrome: functionally working
 - Firefox: Chrome `LanguageModel` API unavailable; editor remains usable
 - Arc: model setup can stall; watchdog provides a controlled readiness failure
-- Feature status: Chrome manual acceptance passed, including genuine setup progress and dark-mode progress visibility
+- Previous cleanup flow: Chrome manual acceptance passed, including genuine setup progress and dark-mode progress visibility
+- Current background Improve writing, Structure notes, and Summarize flow: manual Chrome acceptance passed
+- Final minimal AI chooser, ready/outdated/error notifications, and POC metrics removal: manually accepted
+- Mermaid valid/invalid rendering and contained failure behavior: manually accepted
 
 WebLLM and other cross-browser local-AI fallbacks remain deferred.
 
@@ -161,27 +182,23 @@ WebLLM and other cross-browser local-AI fallbacks remain deferred.
 1. The Firefox autocomplete ghost baseline investigation is deferred and is outside the AI hardening scope.
 2. WebLLM and other cross-browser local-AI fallbacks remain deferred.
 3. The existing Vite >500 kB bundle warning remains accepted and unrelated.
-4. Synchronized editor/preview scrolling is the next planned feature and is not implemented.
-5. Preview-only Mermaid support remains accepted future work after synchronized scrolling or later UI acceptance.
-6. Reported deployed AI modal/output issues remain pending a separate AI task; toolbar work does not change AI behavior.
+4. Mermaid `12.0.0` currently carries five high npm audit findings through `chevrotain@11.1.2` and `lodash-es@4.17.23`. The affected Lodash template/path functions are not imported by the runtime parser modules and were not found in the production output. npm offers no non-breaking Mermaid 12 patch; the suggested remediation is a major downgrade to Mermaid 11.17.2. This residual supply-chain risk is accepted for this release and should be revisited when a patched Mermaid 12 release is available.
 
 ## QA / Validation
 
-Latest validation after the toolbar completion:
+Latest validation after removing synchronized scrolling, adding deterministic formatting and AI writing actions, and implementing lazy preview-only Mermaid rendering:
 
-- 29 test files
-- 270 tests passed
+- 30 test files
+- 307 tests passed
 - Lint passed
 - Build passed
 - Format check passed
 - `git diff --check` passed
-- Existing Vite >500 kB JavaScript chunk warning remains
-
-Automated validation and manual Chrome acceptance both pass for the current feature scope.
+- Existing Vite >500 kB JavaScript chunk warning remains accepted
 
 ## Current Task
 
-Manually validate the compact toolbar, Image Markdown action and local icon, shared single-owner workspace seams, stable borderless editor focus treatment, independently centred filename, right-side Copy/Download/AI/Theme actions, line-number gutter spacing, first-H1 document identity, and shared editor H1–H6 colour. Synchronized scrolling is next; Mermaid and deployed AI modal/output fixes remain deferred.
+Release verification is complete for the accepted feature scope. The current version is ready to commit, push, and verify through the production deployment pipeline.
 
 ## Development Workflow
 

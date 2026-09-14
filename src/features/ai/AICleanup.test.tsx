@@ -35,9 +35,10 @@ function deferred<T>() {
 }
 
 async function generateSuggestion(user: ReturnType<typeof userEvent.setup>) {
-	await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+	await user.click(screen.getByRole('button', { name: 'AI writing' }))
 	await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-	await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+	await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+	await user.click(await screen.findByRole('button', { name: 'Review' }))
 	return screen.findByLabelText('AI suggestion')
 }
 
@@ -76,7 +77,7 @@ describe('AICleanup', () => {
 			</StrictMode>,
 		)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('button', { name: 'Enable AI' })).toBeInTheDocument()
 		expect(providerFactory).toHaveBeenCalledTimes(2)
 		expect(firstProvider.dispose).toHaveBeenCalledOnce()
@@ -91,6 +92,10 @@ describe('AICleanup', () => {
 	it('does not check capability or create a session during page load', () => {
 		const provider = createProvider()
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
+		expect(screen.getByRole('button', { name: 'AI writing' })).toHaveAttribute(
+			'title',
+			'AI writing',
+		)
 		expect(provider.getAvailability).not.toHaveBeenCalled()
 		expect(provider.initialize).not.toHaveBeenCalled()
 	})
@@ -99,13 +104,13 @@ describe('AICleanup', () => {
 		const user = userEvent.setup()
 		const provider = createProvider()
 		render(<AICleanup content="# PRIVATE" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('button', { name: 'Enable AI' })).toBeInTheDocument()
 		expect(provider.initialize).not.toHaveBeenCalled()
 		expect(storage).toHaveLength(0)
 
 		await user.click(screen.getByRole('button', { name: 'Enable AI' }))
-		expect(await screen.findByRole('button', { name: 'Run Clean Up' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: 'Improve writing' })).toBeInTheDocument()
 		expect(storage).toEqual(new Map([[AI_ENABLED_PREFERENCE_KEY, 'true']]))
 		expect(JSON.stringify([...storage])).not.toContain('PRIVATE')
 	})
@@ -122,7 +127,7 @@ describe('AICleanup', () => {
 
 		expect(provider.getAvailability).not.toHaveBeenCalled()
 		expect(provider.initialize).not.toHaveBeenCalled()
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(screen.getByRole('status')).toHaveTextContent('Checking local AI availability')
 		expect(provider.initialize).not.toHaveBeenCalled()
 
@@ -132,7 +137,7 @@ describe('AICleanup', () => {
 		)
 		expect(provider.initialize).toHaveBeenCalledOnce()
 		setup.resolve({ setupDurationMs: 1 })
-		expect(await screen.findByRole('button', { name: 'Run Clean Up' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: 'Improve writing' })).toBeInTheDocument()
 	})
 
 	it('aborts remembered setup on close and disposes its provider on unmount', async () => {
@@ -147,9 +152,9 @@ describe('AICleanup', () => {
 		const view = render(
 			<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('status')).toHaveTextContent('Preparing local AI')
-		await user.click(screen.getByRole('button', { name: 'Cancel' }))
+		await user.click(screen.getByRole('button', { name: 'Close AI writing' }))
 		expect(setupSignal?.aborted).toBe(true)
 		expect(provider.dispose).not.toHaveBeenCalled()
 		view.unmount()
@@ -168,8 +173,8 @@ describe('AICleanup', () => {
 			/>,
 		)
 		expect(firstProvider.initialize).not.toHaveBeenCalled()
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
-		expect(await screen.findByRole('button', { name: 'Run Clean Up' })).toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		expect(await screen.findByRole('button', { name: 'Improve writing' })).toBeInTheDocument()
 		expect(firstProvider.initialize).toHaveBeenCalledOnce()
 		first.unmount()
 		expect(firstProvider.dispose).toHaveBeenCalledOnce()
@@ -183,8 +188,8 @@ describe('AICleanup', () => {
 			/>,
 		)
 		expect(secondProvider.initialize).not.toHaveBeenCalled()
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
-		expect(await screen.findByRole('button', { name: 'Run Clean Up' })).toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		expect(await screen.findByRole('button', { name: 'Improve writing' })).toBeInTheDocument()
 		expect(secondProvider.initialize).toHaveBeenCalledOnce()
 	})
 
@@ -196,8 +201,10 @@ describe('AICleanup', () => {
 			const provider = createProvider()
 			provider.getAvailability = vi.fn().mockResolvedValue(availability)
 			render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
-			await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
-			expect(await screen.findByText(/isn't available|is unavailable/)).toBeInTheDocument()
+			await user.click(screen.getByRole('button', { name: 'AI writing' }))
+			expect(
+				await screen.findByText(/requires a supported Chrome|is unavailable/),
+			).toBeInTheDocument()
 			expect(provider.initialize).not.toHaveBeenCalled()
 		},
 	)
@@ -213,8 +220,8 @@ describe('AICleanup', () => {
 			},
 		})
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
-		expect(await screen.findByText(/isn't available/)).toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		expect(await screen.findByText(/requires a supported Chrome/)).toBeInTheDocument()
 		expect(create).not.toHaveBeenCalled()
 	})
 
@@ -231,7 +238,7 @@ describe('AICleanup', () => {
 		const user = userEvent.setup()
 		const provider = createProvider()
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('button', { name: 'Enable AI' })).toBeInTheDocument()
 	})
 
@@ -248,9 +255,9 @@ describe('AICleanup', () => {
 		const user = userEvent.setup()
 		const provider = createProvider()
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		expect(await screen.findByRole('button', { name: 'Run Clean Up' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: 'Improve writing' })).toBeInTheDocument()
 	})
 
 	it('times out availability independently and retries with a fresh operation', async () => {
@@ -268,7 +275,7 @@ describe('AICleanup', () => {
 				availabilityWatchdogMs={20}
 			/>,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent(
 			'Local AI availability could not be checked',
 		)
@@ -292,7 +299,7 @@ describe('AICleanup', () => {
 				availabilityWatchdogMs={20}
 			/>,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent('could not be checked')
 		availability.resolve('unsupported')
 		await act(async () => availability.promise)
@@ -308,11 +315,11 @@ describe('AICleanup', () => {
 		const view = render(
 			<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
-		await user.click(screen.getByRole('button', { name: 'Cancel AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(screen.getByRole('button', { name: 'Close AI writing' }))
 		availability.resolve('available')
 		await act(async () => availability.promise)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('button', { name: 'Enable AI' })).toBeInTheDocument()
 		expect(provider.getAvailability).toHaveBeenCalledTimes(2)
 		view.unmount()
@@ -333,22 +340,24 @@ describe('AICleanup', () => {
 		expect(onApply).toHaveBeenCalledWith('# Cleaned')
 	})
 
-	it('discards the suggestion on Cancel', async () => {
+	it('preserves a completed suggestion when the review is closed', async () => {
 		const user = userEvent.setup()
 		const onApply = vi.fn()
 		render(<AICleanup content="# Original" onApply={onApply} provider={createProvider()} />)
 
 		await generateSuggestion(user)
-		await user.click(screen.getByRole('button', { name: 'Cancel' }))
+		await user.click(screen.getByRole('button', { name: 'Close AI writing' }))
 
 		expect(onApply).not.toHaveBeenCalled()
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: 'AI writing: review ready' }))
+		expect(screen.getByLabelText('AI suggestion')).toHaveTextContent('# Cleaned')
 	})
 
 	it('disables cleanup for an empty document', () => {
 		const provider = createProvider()
 		render(<AICleanup content={' \n '} onApply={vi.fn()} provider={provider} />)
-		expect(screen.getByRole('button', { name: 'AI Clean Up' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'AI writing' })).toBeDisabled()
 		expect(provider.initialize).not.toHaveBeenCalled()
 	})
 
@@ -363,15 +372,49 @@ describe('AICleanup', () => {
 			/>,
 		)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Summarize' }))
+		expect(await screen.findByText('AI writing failed')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'AI writing: action failed' })).toHaveAttribute(
+			'title',
+			'AI writing: action failed',
+		)
+		await user.click(await screen.findByRole('button', { name: 'Open' }))
 
 		expect(await screen.findByRole('alert')).toHaveTextContent(
-			'Local AI could not clean up this document',
+			'Local AI could not complete this writing action',
 		)
 		expect(screen.getByRole('alert')).not.toHaveTextContent('Model failed')
 		expect(onApply).not.toHaveBeenCalled()
+	})
+
+	it('retains the selected action when generation is retried', async () => {
+		const user = userEvent.setup()
+		const provider = createProvider()
+		provider.generate = vi
+			.fn()
+			.mockRejectedValueOnce(new AIProviderError('GENERATION_FAILED'))
+			.mockResolvedValueOnce({
+				text: '# Structured',
+				generationDurationMs: 4,
+				inputLength: 100,
+				outputLength: 12,
+			})
+		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
+
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+		await user.click(await screen.findByRole('button', { name: 'Structure notes' }))
+		await user.click(await screen.findByRole('button', { name: 'Open' }))
+		await user.click(await screen.findByRole('button', { name: 'Try Again' }))
+		await user.click(await screen.findByRole('button', { name: 'Review' }))
+		await screen.findByRole('button', { name: 'Apply' })
+
+		expect(provider.generate).toHaveBeenCalledTimes(2)
+		for (const [prompt] of vi.mocked(provider.generate).mock.calls) {
+			expect(prompt).toContain('Organize the existing material')
+		}
 	})
 
 	it('shows setup and generation as distinct states', async () => {
@@ -382,13 +425,81 @@ describe('AICleanup', () => {
 		provider.generate = vi.fn().mockReturnValue(new Promise(() => undefined))
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		expect(screen.getByRole('status')).toHaveTextContent('Preparing local AI')
 
 		setup.resolve({ setupDurationMs: 10 })
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
-		expect(screen.getByRole('status')).toHaveTextContent('Generating suggestion')
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		expect(screen.getByRole('status')).toHaveTextContent('Working locally')
+	})
+
+	it('shows a minimal ready chooser with descriptive action titles and no Cancel action', async () => {
+		const user = userEvent.setup()
+		render(<AICleanup content="# Original" onApply={vi.fn()} provider={createProvider()} />)
+
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+
+		expect(screen.getByRole('heading', { name: 'AI writing' })).toBeInTheDocument()
+		expect(screen.queryByText(/Experimental · Chrome built-in AI/)).not.toBeInTheDocument()
+		expect(
+			screen.queryByText(/suggestion will not change your document/i),
+		).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Improve writing' })).toHaveAttribute(
+			'title',
+			expect.stringContaining('grammar'),
+		)
+		expect(screen.getByRole('button', { name: 'Structure notes' })).toHaveAttribute(
+			'title',
+			expect.stringContaining('headings'),
+		)
+		expect(screen.getByRole('button', { name: 'Summarize' })).toHaveAttribute(
+			'title',
+			expect.stringContaining('summary'),
+		)
+	})
+
+	it('uses Close rather than a redundant Cancel in completed and outdated reviews', async () => {
+		const user = userEvent.setup()
+		const view = render(
+			<AICleanup content="# Original" onApply={vi.fn()} provider={createProvider()} />,
+		)
+
+		await generateSuggestion(user)
+		expect(screen.getByRole('button', { name: 'Close AI writing' })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+
+		view.rerender(
+			<AICleanup content="# Changed" onApply={vi.fn()} provider={createProvider()} />,
+		)
+		expect(await screen.findByRole('button', { name: 'Regenerate' })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+	})
+
+	it.each([
+		['Improve writing', 'Improve grammar, clarity, and concision'],
+		['Structure notes', 'Organize the existing material'],
+		['Summarize', 'Produce a concise Markdown summary'],
+	] as const)('runs the %s application-selected writing action', async (label, instruction) => {
+		const user = userEvent.setup()
+		const provider = createProvider()
+		const onApply = vi.fn()
+		render(<AICleanup content="# Source" onApply={onApply} provider={provider} />)
+
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+		await user.click(await screen.findByRole('button', { name: label }))
+		await user.click(await screen.findByRole('button', { name: 'Review' }))
+		await user.click(await screen.findByRole('button', { name: 'Apply' }))
+
+		const prompt = vi.mocked(provider.generate).mock.calls[0]?.[0]
+		expect(prompt).toContain(instruction)
+		expect(prompt).toContain(JSON.stringify({ markdown: '# Source' }))
+		expect(onApply).toHaveBeenCalledWith('# Cleaned')
 	})
 
 	it('uses indeterminate preparation until genuine download progress arrives', async () => {
@@ -401,7 +512,7 @@ describe('AICleanup', () => {
 		})
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		expect(screen.getByRole('status')).toHaveTextContent('Preparing local AI')
 		const indeterminate = screen.getByRole('progressbar', {
@@ -410,6 +521,8 @@ describe('AICleanup', () => {
 		expect(indeterminate).not.toHaveAttribute('value')
 		expect(indeterminate).not.toHaveAttribute('aria-valuenow')
 		expect(indeterminate).toHaveClass('ai-progress__bar', 'ai-progress__bar--indeterminate')
+		expect(screen.getByRole('button', { name: 'Preparing…' })).toBeDisabled()
+		expect(screen.queryByRole('button', { name: 'Try Again' })).not.toBeInTheDocument()
 
 		act(() => reportProgress?.(0))
 		const zeroProgress = screen.getByRole('progressbar', {
@@ -421,6 +534,8 @@ describe('AICleanup', () => {
 		expect(zeroProgress).toHaveAttribute('aria-valuemin', '0')
 		expect(zeroProgress).toHaveAttribute('aria-valuemax', '100')
 		expect(zeroProgress).toHaveAttribute('aria-valuenow', '0')
+		expect(screen.getByRole('button', { name: 'Preparing…' })).toBeDisabled()
+		expect(screen.queryByRole('button', { name: 'Try Again' })).not.toBeInTheDocument()
 		act(() => reportProgress?.(0.375))
 		expect(screen.getByRole('status')).toHaveTextContent('Downloading local AI model — 38%')
 		const determinate = screen.getByRole('progressbar', {
@@ -440,7 +555,7 @@ describe('AICleanup', () => {
 		})
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		act(() => reportProgress?.(1))
 
@@ -458,15 +573,15 @@ describe('AICleanup', () => {
 		provider.initialize = vi.fn().mockReturnValue(setup.promise)
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		expect(screen.queryByText(/%/)).not.toBeInTheDocument()
 		setup.resolve({ setupDurationMs: 1 })
-		expect(await screen.findByRole('button', { name: 'Run Clean Up' })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: 'Improve writing' })).toBeInTheDocument()
 		expect(screen.queryByText(/100%/)).not.toBeInTheDocument()
 	})
 
-	it('renders streamed output while Apply remains disabled until completion', async () => {
+	it('withholds partial output while Apply remains disabled until completion', async () => {
 		const user = userEvent.setup()
 		const generation = deferred<{
 			text: string
@@ -475,19 +590,17 @@ describe('AICleanup', () => {
 			outputLength: number
 		}>()
 		const provider = createProvider()
-		provider.generate = vi.fn().mockImplementation((_prompt, options) => {
-			options?.onUpdate?.('# Partial')
-			return generation.promise
-		})
+		provider.generate = vi.fn().mockReturnValue(generation.promise)
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
-		await waitFor(() =>
-			expect(screen.getByLabelText('AI suggestion')).toHaveTextContent('# Partial'),
-		)
-		expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled()
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		expect(screen.getByRole('status')).toHaveTextContent('Working locally')
+		expect(screen.queryByLabelText('AI suggestion')).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument()
 
 		generation.resolve({
 			text: '# Complete',
@@ -495,33 +608,34 @@ describe('AICleanup', () => {
 			inputLength: 100,
 			outputLength: 10,
 		})
-		await waitFor(() => expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled())
+		await user.click(await screen.findByRole('button', { name: 'Review' }))
+		expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled()
 		expect(screen.getByLabelText('AI suggestion')).toHaveTextContent('# Complete')
 	})
 
-	it('aborts generation and discards partial output on Cancel', async () => {
+	it('aborts generation and keeps output hidden on Cancel', async () => {
 		const user = userEvent.setup()
 		const onApply = vi.fn()
 		const provider = createProvider()
 		let generationSignal: AbortSignal | undefined
 		provider.generate = vi.fn().mockImplementation((_prompt, options) => {
 			generationSignal = options?.signal
-			options?.onUpdate?.('# Incomplete')
 			return new Promise(() => undefined)
 		})
 		render(<AICleanup content="# Original" onApply={onApply} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
-		await user.click(screen.getByRole('button', { name: 'Cancel' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		await user.click(screen.getByRole('button', { name: 'Cancel AI' }))
 
 		expect(generationSignal?.aborted).toBe(true)
 		expect(onApply).not.toHaveBeenCalled()
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 	})
 
-	it('aborts model setup when Cancel is used while preparing', async () => {
+	it('aborts model setup when the dialog is closed while preparing', async () => {
 		const user = userEvent.setup()
 		const provider = createProvider()
 		let setupSignal: AbortSignal | undefined
@@ -531,9 +645,9 @@ describe('AICleanup', () => {
 		})
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(screen.getByRole('button', { name: 'Cancel' }))
+		await user.click(screen.getByRole('button', { name: 'Close AI writing' }))
 
 		expect(setupSignal?.aborted).toBe(true)
 		expect(window.localStorage.getItem(AI_ENABLED_PREFERENCE_KEY)).toBeNull()
@@ -545,7 +659,7 @@ describe('AICleanup', () => {
 		const provider = createProvider()
 		provider.initialize = vi.fn().mockRejectedValue(new Error('private setup detail'))
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent('could not prepare')
 		expect(window.localStorage.getItem(AI_ENABLED_PREFERENCE_KEY)).toBeNull()
@@ -568,7 +682,7 @@ describe('AICleanup', () => {
 			/>,
 		)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent(
 			"Local AI couldn't become ready on this browser or device.",
@@ -598,7 +712,7 @@ describe('AICleanup', () => {
 			/>,
 		)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		const enableButton = await screen.findByRole('button', { name: 'Enable AI' })
 		vi.useFakeTimers()
 		try {
@@ -631,7 +745,7 @@ describe('AICleanup', () => {
 			/>,
 		)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		const enableButton = await screen.findByRole('button', { name: 'Enable AI' })
 		vi.useFakeTimers()
 		try {
@@ -664,7 +778,7 @@ describe('AICleanup', () => {
 			/>,
 		)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		act(() => progressCallbacks[0]?.(0.6))
 		expect(screen.getByRole('status')).toHaveTextContent('60%')
@@ -675,19 +789,6 @@ describe('AICleanup', () => {
 		expect(screen.queryByText(/60%/)).not.toBeInTheDocument()
 		act(() => progressCallbacks[0]?.(0.9))
 		expect(screen.queryByText(/90%/)).not.toBeInTheDocument()
-	})
-
-	it('keeps development metrics free of Markdown contents', async () => {
-		const user = userEvent.setup()
-		const secretSource = '# PRIVATE_MARKDOWN_VALUE'
-		render(<AICleanup content={secretSource} onApply={vi.fn()} provider={createProvider()} />)
-
-		await generateSuggestion(user)
-		await user.click(screen.getByText('POC metrics'))
-		const metrics = screen.getByText('POC metrics').closest('details')
-		expect(metrics).not.toHaveTextContent('PRIVATE_MARKDOWN_VALUE')
-		expect(metrics).toHaveTextContent('inputCharacters')
-		expect(metrics).toHaveTextContent(String(secretSource.length))
 	})
 
 	it('marks a review stale when the document changes and never revalidates it', async () => {
@@ -712,7 +813,7 @@ describe('AICleanup', () => {
 		expect(onApply).not.toHaveBeenCalled()
 	})
 
-	it('aborts generation when content changes and regenerates from current content', async () => {
+	it('continues generation when content changes and regenerates from current content', async () => {
 		const user = userEvent.setup()
 		const first = deferred<AIGenerationResult>()
 		const provider = createProvider()
@@ -732,19 +833,32 @@ describe('AICleanup', () => {
 		const view = render(
 			<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Summarize' }))
 
 		view.rerender(<AICleanup content="# Current" onApply={vi.fn()} provider={provider} />)
-		expect(await screen.findByRole('alert')).toHaveTextContent('document changed')
-		expect(firstSignal?.aborted).toBe(true)
+		expect(
+			await screen.findByRole('button', { name: 'AI writing: result will be outdated' }),
+		).toBeInTheDocument()
+		expect(firstSignal?.aborted).toBe(false)
+		first.resolve({
+			text: '# Outdated summary',
+			generationDurationMs: 1,
+			inputLength: 10,
+			outputLength: 18,
+		})
+		await user.click(await screen.findByRole('button', { name: 'Review' }))
+		expect(screen.getByRole('alert')).toHaveTextContent('document changed')
 		await user.click(screen.getByRole('button', { name: 'Regenerate' }))
 		await waitFor(() => expect(provider.generate).toHaveBeenCalledTimes(2))
 		expect(provider.generate).toHaveBeenLastCalledWith(
 			expect.stringContaining(JSON.stringify({ markdown: '# Current' })),
 			expect.any(Object),
 		)
+		for (const [prompt] of vi.mocked(provider.generate).mock.calls) {
+			expect(prompt).toContain('Produce a concise Markdown summary')
+		}
 	})
 
 	it('shows an explanation and disables regeneration when current content is whitespace', async () => {
@@ -757,9 +871,7 @@ describe('AICleanup', () => {
 		await waitFor(() => expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled())
 		view.rerender(<AICleanup content={' \n '} onApply={vi.fn()} provider={provider} />)
 
-		await waitFor(() =>
-			expect(screen.getByRole('button', { name: 'AI Clean Up' })).toBeDisabled(),
-		)
+		expect(screen.getByRole('button', { name: 'AI writing: review outdated' })).toBeEnabled()
 		expect(await screen.findByText('Add Markdown before regenerating.')).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: 'Regenerate' })).toBeDisabled()
 	})
@@ -774,9 +886,10 @@ describe('AICleanup', () => {
 			.mockRejectedValueOnce(new Error('private recovery detail'))
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
 
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Open' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent('session expired')
 		await user.click(screen.getByRole('button', { name: 'Try Again' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent('Chrome could not prepare')
@@ -800,9 +913,10 @@ describe('AICleanup', () => {
 				setupWatchdogMs={20}
 			/>,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Open' }))
 		await user.click(await screen.findByRole('button', { name: 'Try Again' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent("couldn't become ready")
 	})
@@ -819,9 +933,9 @@ describe('AICleanup', () => {
 		const view = render(
 			<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(screen.getByRole('button', { name: 'Cancel' }))
+		await user.click(screen.getByRole('button', { name: 'Close AI writing' }))
 		act(() => progress?.(0.5))
 		setup.resolve({ setupDurationMs: 1 })
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -830,33 +944,27 @@ describe('AICleanup', () => {
 		act(() => progress?.(0.8))
 	})
 
-	it('ignores late stream callbacks after cancellation and unmount', async () => {
+	it('ignores late generation completion after cancellation and unmount', async () => {
 		const user = userEvent.setup()
 		const provider = createProvider()
-		let update: ((value: string) => void) | undefined
-		provider.generate = vi.fn().mockImplementation((_prompt, options) => {
-			update = options?.onUpdate
-			return new Promise(() => undefined)
-		})
+		const generation = deferred<AIGenerationResult>()
+		provider.generate = vi.fn().mockReturnValue(generation.promise)
 		const view = render(
 			<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
-		await user.click(screen.getByRole('button', { name: 'Cancel' }))
-		vi.useFakeTimers()
-		try {
-			const timerCount = vi.getTimerCount()
-			act(() => update?.('# Late'))
-			expect(screen.queryByText('# Late')).not.toBeInTheDocument()
-			expect(vi.getTimerCount()).toBe(timerCount)
-			view.unmount()
-			act(() => update?.('# Later'))
-			expect(vi.getTimerCount()).toBe(timerCount)
-		} finally {
-			vi.useRealTimers()
-		}
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		await user.click(screen.getByRole('button', { name: 'Cancel AI' }))
+		generation.resolve({
+			text: '# Late',
+			generationDurationMs: 1,
+			inputLength: 1,
+			outputLength: 6,
+		})
+		expect(screen.queryByText('# Late')).not.toBeInTheDocument()
+		view.unmount()
 	})
 
 	it('traps focus, makes the app inert, closes on Escape, and restores focus', async () => {
@@ -868,11 +976,11 @@ describe('AICleanup', () => {
 				<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />
 			</div>,
 		)
-		const trigger = screen.getByRole('button', { name: 'AI Clean Up' })
+		const trigger = screen.getByRole('button', { name: 'AI writing' })
 		await user.click(trigger)
 		const app = trigger.closest('.app-shell') as HTMLElement
 		expect(app.inert).toBe(true)
-		const close = await screen.findByRole('button', { name: 'Cancel AI Clean Up' })
+		const close = await screen.findByRole('button', { name: 'Close AI writing' })
 		expect(close).toHaveFocus()
 
 		await user.tab({ shift: true })
@@ -895,13 +1003,14 @@ describe('AICleanup', () => {
 		const setup = deferred<{ setupDurationMs: number }>()
 		provider.initialize = vi.fn().mockReturnValue(setup.promise)
 		render(<AICleanup content="# Original" onApply={onApply} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		const enableButton = await screen.findByRole('button', { name: 'Enable AI' })
 		fireEvent.click(enableButton)
 		fireEvent.click(enableButton)
 		expect(provider.initialize).toHaveBeenCalledOnce()
 		setup.resolve({ setupDurationMs: 1 })
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Review' }))
 		const applyButton = await screen.findByRole('button', { name: 'Apply' })
 		fireEvent.click(applyButton)
 		fireEvent.click(applyButton)
@@ -916,7 +1025,7 @@ describe('AICleanup', () => {
 			.mockRejectedValueOnce(new AIProviderError('AVAILABILITY_CHECK_FAILED'))
 			.mockResolvedValueOnce('available')
 		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent('could not be checked')
 		expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
 		await user.click(screen.getByRole('button', { name: 'Retry' }))
@@ -933,9 +1042,10 @@ describe('AICleanup', () => {
 		const provider = createProvider()
 		provider.generate = vi.fn().mockRejectedValue(new AIProviderError(code))
 		render(<AICleanup content="# SECRET" onApply={vi.fn()} provider={provider} />)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
-		await user.click(await screen.findByRole('button', { name: 'Run Clean Up' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Open' }))
 		const alert = await screen.findByRole('alert')
 		expect(alert).toHaveTextContent(message)
 		expect(alert).not.toHaveTextContent('SECRET')
@@ -957,7 +1067,7 @@ describe('AICleanup', () => {
 				setupWatchdogMs={40_000}
 			/>,
 		)
-		await user.click(screen.getByRole('button', { name: 'AI Clean Up' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
 		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
 		vi.useFakeTimers()
 		try {
@@ -979,30 +1089,132 @@ describe('AICleanup', () => {
 				<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />
 			</div>,
 		)
-		const trigger = screen.getByRole('button', { name: 'AI Clean Up' })
+		const trigger = screen.getByRole('button', { name: 'AI writing' })
 		await user.click(trigger)
-		await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+		await user.click(await screen.findByRole('button', { name: 'Close AI writing' }))
 		expect(trigger.closest<HTMLElement>('.app-shell')?.inert).toBe(true)
 		view.unmount()
 	})
 
-	it('never includes generated Markdown in development metrics', async () => {
+	it.each(['Improve writing', 'Structure notes', 'Summarize'])(
+		'starts %s in the background and restores application focus',
+		async (label) => {
+			const user = userEvent.setup()
+			const generation = deferred<AIGenerationResult>()
+			const provider = createProvider()
+			provider.generate = vi.fn().mockReturnValue(generation.promise)
+			render(
+				<div className="app-shell">
+					<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />
+				</div>,
+			)
+			await user.click(screen.getByRole('button', { name: 'AI writing' }))
+			await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+			const action = await screen.findByRole('button', { name: label })
+			fireEvent.click(action)
+			fireEvent.click(action)
+
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+			expect(document.querySelector('.app-shell')).not.toHaveAttribute('inert')
+			const workingTrigger = screen.getByRole('button', {
+				name: 'AI writing: working locally',
+			})
+			expect(workingTrigger).toHaveFocus()
+			expect(workingTrigger).toHaveAttribute('title', 'AI writing: working locally')
+			expect(provider.generate).toHaveBeenCalledOnce()
+		},
+	)
+
+	it('notifies without stealing focus and dismissal preserves toolbar review access', async () => {
 		const user = userEvent.setup()
-		const generatedSecret = '# GENERATED_PRIVATE_VALUE'
-		render(
-			<AICleanup
-				content="# Original"
-				onApply={vi.fn()}
-				provider={createProvider({ output: generatedSecret })}
-			/>,
+		const generation = deferred<AIGenerationResult>()
+		const provider = createProvider()
+		provider.generate = vi.fn().mockReturnValue(generation.promise)
+		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		const trigger = screen.getByRole('button', { name: 'AI writing: working locally' })
+		trigger.focus()
+		generation.resolve({
+			text: '# Complete',
+			generationDurationMs: 1,
+			inputLength: 10,
+			outputLength: 10,
+		})
+
+		expect(await screen.findByText('AI review ready')).toBeInTheDocument()
+		expect(trigger).toHaveFocus()
+		expect(screen.getByRole('button', { name: 'AI writing: review ready' })).toHaveAttribute(
+			'title',
+			'AI writing: review ready',
 		)
-		await generateSuggestion(user)
-		await waitFor(() => expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled())
-		await user.click(screen.getByText('POC metrics'))
-		const metrics = screen.getByText('POC metrics').closest('details')
-		expect(metrics).not.toHaveTextContent('GENERATED_PRIVATE_VALUE')
-		expect(metrics).toHaveTextContent(String(generatedSecret.length))
-		expect(storage).toEqual(new Map([[AI_ENABLED_PREFERENCE_KEY, 'true']]))
-		expect(JSON.stringify([...storage])).not.toContain('GENERATED_PRIVATE_VALUE')
+		await user.click(screen.getByRole('button', { name: 'Dismiss' }))
+		expect(screen.queryByText('AI review ready')).not.toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: 'AI writing: review ready' }))
+		expect(await screen.findByLabelText('AI suggestion')).toHaveTextContent('# Complete')
+	})
+
+	it('keeps a background result irreversibly outdated and reviewable', async () => {
+		const user = userEvent.setup()
+		const generation = deferred<AIGenerationResult>()
+		const provider = createProvider()
+		provider.generate = vi.fn().mockReturnValue(generation.promise)
+		const view = render(
+			<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />,
+		)
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+		await user.click(await screen.findByRole('button', { name: 'Summarize' }))
+		view.rerender(<AICleanup content="# Changed" onApply={vi.fn()} provider={provider} />)
+		view.rerender(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
+		generation.resolve({
+			text: '# Old result',
+			generationDurationMs: 1,
+			inputLength: 10,
+			outputLength: 12,
+		})
+
+		expect(await screen.findByText('AI review is outdated')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'AI writing: review outdated' })).toHaveAttribute(
+			'title',
+			'AI writing: review outdated',
+		)
+		await user.click(screen.getByRole('button', { name: 'Review' }))
+		expect(screen.getByLabelText('AI suggestion')).toHaveTextContent('# Old result')
+		expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Regenerate' })).toBeEnabled()
+	})
+
+	it('continues through ordinary closure and aborts only through Cancel AI', async () => {
+		const user = userEvent.setup()
+		const provider = createProvider()
+		let signal: AbortSignal | undefined
+		provider.generate = vi.fn().mockImplementation((_prompt, options) => {
+			signal = options?.signal
+			return new Promise(() => undefined)
+		})
+		render(<AICleanup content="# Original" onApply={vi.fn()} provider={provider} />)
+		await user.click(screen.getByRole('button', { name: 'AI writing' }))
+		await user.click(await screen.findByRole('button', { name: 'Enable AI' }))
+		await user.click(await screen.findByRole('button', { name: 'Improve writing' }))
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		fireEvent.keyDown(document, { key: 'Escape' })
+		expect(signal?.aborted).toBe(false)
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		await user.click(screen.getByRole('button', { name: 'Close AI writing' }))
+		expect(signal?.aborted).toBe(false)
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		const backdrop = document.querySelector('.ai-review-backdrop')
+		if (!backdrop) throw new Error('Expected AI backdrop')
+		fireEvent.mouseDown(backdrop)
+		expect(signal?.aborted).toBe(false)
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		await user.click(screen.getByRole('button', { name: 'Continue in background' }))
+		expect(signal?.aborted).toBe(false)
+		await user.click(screen.getByRole('button', { name: 'AI writing: working locally' }))
+		await user.click(screen.getByRole('button', { name: 'Cancel AI' }))
+		expect(signal?.aborted).toBe(true)
+		expect(screen.getByRole('button', { name: 'AI writing' })).toBeInTheDocument()
 	})
 })

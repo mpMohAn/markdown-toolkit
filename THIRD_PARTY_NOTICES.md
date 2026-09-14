@@ -19,6 +19,7 @@ Included icons:
 - `content_copy`
 - `dark_mode`
 - `download`
+- `format_align_left`
 - `format_bold`
 - `format_italic`
 - `format_list_bulleted`
@@ -32,3 +33,12 @@ Included icons:
 - `tag`
 
 Only icons visible in the Markdown Toolkit toolbar are included. The application uses the SVGs as local CSS masks so they inherit the current text colour. No icon font, CDN, or external runtime asset is loaded.
+
+## Mermaid
+
+Markdown Toolkit bundles Mermaid `12.0.0` as a pinned npm dependency and loads it only for preview documents containing Mermaid fences.
+
+- Source: https://github.com/mermaid-js/mermaid
+- Copyright: Mermaid contributors
+- License: MIT
+- License text: https://github.com/mermaid-js/mermaid/blob/develop/LICENSE

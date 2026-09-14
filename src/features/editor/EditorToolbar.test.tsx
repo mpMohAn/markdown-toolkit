@@ -39,6 +39,25 @@ describe('EditorToolbar', () => {
 		expect(view.state.doc.toString()).toBe('selected')
 	})
 
+	it('formats the complete document locally and restores editor focus', async () => {
+		const user = userEvent.setup()
+		view = new EditorView({
+			parent: document.body,
+			state: EditorState.create({ doc: '##   Title\n* item' }),
+		})
+		renderToolbar(
+			<EditorToolbar
+				editorView={view}
+				showLineNumbers={false}
+				onToggleLineNumbers={() => undefined}
+			/>,
+		)
+
+		await user.click(screen.getByRole('button', { name: 'Format Markdown' }))
+		expect(view.state.doc.toString()).toBe('## Title\n- item\n')
+		expect(view.hasFocus).toBe(true)
+	})
+
 	it('places Insert image immediately after Link and runs it through the command layer', async () => {
 		const user = userEvent.setup()
 		view = new EditorView({
@@ -132,6 +151,7 @@ describe('EditorToolbar', () => {
 		expect(screen.queryByRole('menuitem', { name: 'Heading 1' })).not.toBeInTheDocument()
 		expect(screen.getByRole('button', { name: 'Task list' })).toBeDisabled()
 		expect(screen.getByRole('button', { name: 'Ordered list' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: 'Format Markdown' })).toBeDisabled()
 	})
 
 	it.each([1, 2, 3, 4, 5, 6])('applies Heading %s from the text-style menu', async (level) => {

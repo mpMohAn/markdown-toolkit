@@ -18,6 +18,7 @@ interface MarkdownWorkspaceProps {
 	onContentChange: (content: string) => void
 	onEditorReady?: (view: EditorView | null) => void
 	showLineNumbers?: boolean
+	theme?: 'light' | 'dark'
 }
 
 export function MarkdownWorkspace({
@@ -25,9 +26,9 @@ export function MarkdownWorkspace({
 	onContentChange,
 	onEditorReady,
 	showLineNumbers = false,
+	theme = 'light',
 }: MarkdownWorkspaceProps) {
 	const [splitPercent, setSplitPercent] = useState(readSplitPercent)
-
 	const updateSplit = (nextSplit: number) => {
 		const clampedSplit = clampSplit(nextSplit)
 		setSplitPercent(clampedSplit)
@@ -105,8 +106,8 @@ export function MarkdownWorkspace({
 				onKeyDown={handleKeyDown}
 				onDoubleClick={() => updateSplit(DEFAULT_SPLIT_PERCENT)}
 			/>
-			<section className="workspace-pane preview-pane">
-				<MarkdownPreview content={content} />
+			<section className="workspace-pane preview-pane" tabIndex={0}>
+				<MarkdownPreview content={content} theme={theme} />
 			</section>
 		</section>
 	)

@@ -30,6 +30,7 @@
 	--color-text: oklch(24% 0.02 260);
 	--color-text-muted: oklch(48% 0.025 260);
 	--color-workspace-border: oklch(84% 0.01 85);
+	--color-workspace-border-hover: oklch(62% 0.01 85);
 	--color-border: var(--color-workspace-border);
 	--color-interaction: oklch(68% 0.008 260);
 	--color-interaction-hover: oklch(60% 0.01 260);
@@ -55,6 +56,7 @@
 	--color-text: oklch(94% 0.01 260);
 	--color-text-muted: oklch(73% 0.025 260);
 	--color-workspace-border: oklch(28% 0.01 285);
+	--color-workspace-border-hover: oklch(46% 0.01 285);
 	--color-interaction: oklch(42% 0.01 285);
 	--color-interaction-hover: oklch(54% 0.012 285);
 	--color-focus: oklch(68% 0.012 285);

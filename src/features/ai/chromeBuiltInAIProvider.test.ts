@@ -253,16 +253,14 @@ describe('ChromeBuiltInAIProvider', () => {
 		expect(staleDestroy).toHaveBeenCalledOnce()
 	})
 
-	it('streams cumulative updates and destroys its clone', async () => {
+	it('collects the complete stream and destroys its clone', async () => {
 		const fake = createEnvironment({ chunks: ['# ', 'Clean'] })
 		const provider = new ChromeBuiltInAIProvider(fake.environment)
-		const onUpdate = vi.fn()
 		await provider.initialize('system')
 
-		const result = await provider.generate('request', { onUpdate })
+		const result = await provider.generate('request')
 
 		expect(result.text).toBe('# Clean')
-		expect(onUpdate.mock.calls).toEqual([['# '], ['# Clean']])
 		expect(fake.taskSessions[0]?.destroy).toHaveBeenCalledOnce()
 		expect(fake.baseDestroy).not.toHaveBeenCalled()
 	})

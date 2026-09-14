@@ -64,7 +64,7 @@ describe('AppShell toolbar', () => {
 		expect(
 			copy.compareDocumentPosition(download) & Node.DOCUMENT_POSITION_FOLLOWING,
 		).toBeTruthy()
-		const ai = screen.getByRole('button', { name: 'AI Clean Up' })
+		const ai = screen.getByRole('button', { name: 'AI writing' })
 		const theme = screen.getByRole('button', { name: /Switch to .* theme/ })
 		expect(right).toContainElement(ai)
 		expect(right).toContainElement(theme)

@@ -7,6 +7,7 @@ import {
 	executeEditorCommand,
 	type EditorCommandDefinition,
 } from './editorCommands'
+import { formatMarkdownInEditor } from './markdownFormatter'
 
 const textStyleCommands = EDITOR_COMMANDS.filter(
 	(command) => command.id === 'paragraph' || command.id.startsWith('heading'),
@@ -93,6 +94,16 @@ export const EditorToolbar = memo(function EditorToolbar({
 						</button>
 					)
 				})}
+				<button
+					className="toolbar-button toolbar-group-start"
+					type="button"
+					aria-label="Format Markdown"
+					title="Format Markdown"
+					disabled={!editorView}
+					onClick={() => editorView && formatMarkdownInEditor(editorView)}
+				>
+					<MaterialIcon name="formatAlignLeft" />
+				</button>
 				<button
 					className="toolbar-button toolbar-group-start"
 					type="button"

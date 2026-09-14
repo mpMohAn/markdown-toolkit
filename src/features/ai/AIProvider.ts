@@ -40,7 +40,6 @@ export interface AISetupResult {
 
 export interface AIGenerationOptions {
 	signal?: AbortSignal
-	onUpdate?: (text: string) => void
 }
 
 export interface AIGenerationResult {
