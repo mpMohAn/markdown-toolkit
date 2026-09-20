@@ -1,0 +1,65 @@
+name: Feature request
+description: Suggest a focused improvement to Markdown Toolkit.
+title: '[Feature]: '
+labels:
+    - enhancement
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Describe the problem first so the smallest useful solution can be evaluated. Markdown Toolkit is intentionally local-first and tool-focused.
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Before submitting
+          options:
+              - label: I searched existing issues for a similar request.
+                required: true
+              - label: This request does not include private or sensitive document content.
+                required: true
+
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem
+          description: What workflow is difficult or impossible today?
+      validations:
+          required: true
+
+    - type: textarea
+      id: outcome
+      attributes:
+          label: Desired outcome
+          description: Describe the result you need without prescribing a large implementation.
+      validations:
+          required: true
+
+    - type: dropdown
+      id: area
+      attributes:
+          label: Area
+          options:
+              - Editing
+              - Preview or Mermaid
+              - Formatting
+              - AI writing
+              - Copy or export
+              - Accessibility
+              - Browser compatibility
+              - Other
+      validations:
+          required: true
+
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Current workaround
+          description: How do you handle this workflow today?
+
+    - type: checkboxes
+      id: local-first
+      attributes:
+          label: Local-first fit
+          options:
+              - label: The requested workflow can preserve the current no-account, browser-first experience.

@@ -1,0 +1,92 @@
+name: Bug report
+description: Report a reproducible problem in Markdown Toolkit.
+title: '[Bug]: '
+labels:
+    - bug
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for helping improve Markdown Toolkit. Please do not paste private or sensitive document content into this public issue.
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Before submitting
+          options:
+              - label: I searched existing issues for the same problem.
+                required: true
+              - label: I removed private or sensitive Markdown from this report.
+                required: true
+
+    - type: dropdown
+      id: area
+      attributes:
+          label: Area
+          options:
+              - Editor
+              - Preview
+              - Mermaid
+              - AI writing
+              - Copy or download
+              - Persistence or autosave
+              - Toolbar or dialogs
+              - Other
+      validations:
+          required: true
+
+    - type: textarea
+      id: description
+      attributes:
+          label: What happened?
+          description: Describe the problem and what you expected instead.
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduction
+      attributes:
+          label: Steps to reproduce
+          placeholder: |
+              1. Open …
+              2. Select …
+              3. Observe …
+      validations:
+          required: true
+
+    - type: textarea
+      id: sample
+      attributes:
+          label: Minimal safe Markdown sample
+          description: Include only sanitized, non-sensitive content when it is necessary to reproduce the problem.
+          render: markdown
+
+    - type: input
+      id: browser
+      attributes:
+          label: Browser and version
+          placeholder: Chrome 152, Firefox 144, Safari 19, …
+      validations:
+          required: true
+
+    - type: input
+      id: operating-system
+      attributes:
+          label: Operating system
+          placeholder: macOS 15, Windows 11, Ubuntu 26.04, …
+      validations:
+          required: true
+
+    - type: textarea
+      id: details
+      attributes:
+          label: Additional details
+          description: Add screenshots, console output, or other useful context. Remove document content and personal information first.
+
+    - type: checkboxes
+      id: security
+      attributes:
+          label: Security
+          options:
+              - label: This is not a security vulnerability. I will use the private Security Advisory link for vulnerabilities.
+                required: true

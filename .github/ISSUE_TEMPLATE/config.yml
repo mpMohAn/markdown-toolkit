@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Security vulnerability
+      url: https://github.com/mpMohAn/markdown-toolkit/security/advisories/new
+      about: Report vulnerabilities privately instead of opening a public issue.
+    - name: Open Markdown Toolkit
+      url: https://markdown-toolkit.pages.dev/
+      about: Try the current production version before reporting an issue.

@@ -231,6 +231,14 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Cloudflare Web Analytics remains deployment-managed and must not be embedded in repository metadata or application code.
 - GitHub About description, website, and topics are applied manually after acceptance rather than mutated as part of application implementation.
 
+## Repository Presentation
+
+- The README presents the released product accurately and links to the live application before development details.
+- The approved local social preview is reused as the repository's deterministic product image until an accepted editor screenshot is available.
+- Browser and Chrome built-in AI limitations are stated explicitly; optional AI is never presented as a requirement for the editor.
+- Public issue forms warn against sharing private Markdown. Security vulnerabilities are directed to GitHub Security Advisories rather than public issues.
+- Roadmap entries describe accepted deferred work and evidence-led product growth, not release promises or invented timelines.
+
 ## Performance
 
 - Avoid unnecessary dependencies.
