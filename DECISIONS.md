@@ -239,6 +239,13 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Public issue forms warn against sharing private Markdown. Security vulnerabilities are directed to GitHub Security Advisories rather than public issues.
 - Roadmap entries describe accepted deferred work and evidence-led product growth, not release promises or invented timelines.
 
+## Open-Source License
+
+- Markdown Toolkit source code is released under the MIT License to reduce adoption and contribution friction while the product is early.
+- Commercial use is permitted; users must retain the copyright and license notice.
+- Sponsorship remains voluntary support for continued development and is not a condition of using the MIT-licensed code.
+- The Markdown Toolkit name and logo are not licensed for uses that imply endorsement by or affiliation with the original project.
+
 ## Performance
 
 - Avoid unnecessary dependencies.

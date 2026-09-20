@@ -115,4 +115,6 @@ The released V1 is intentionally local-first and browser-only. Current deferred 
 
 ## License
 
-No open-source license has been added yet. Copyright remains with the repository owner.
+The source code is available under the [MIT License](LICENSE). You may use, modify, distribute, and commercially use it while retaining the copyright and license notice.
+
+The license does not grant permission to use the Markdown Toolkit name or logo in a way that suggests endorsement by or affiliation with the original project.

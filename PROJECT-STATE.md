@@ -49,6 +49,7 @@ Production: https://markdown-toolkit.pages.dev/
 - Local 1200×630 social preview image plus root-only sitemap discovery
 - Repository README covering the live product, released capabilities, privacy, browser limits, development, support, and roadmap
 - Structured bug-report and feature-request forms with private security-reporting guidance
+- MIT-licensed source code with the Markdown Toolkit project identity kept distinct from code reuse rights
 
 ## Repository / Working State
 
@@ -204,7 +205,7 @@ Latest validation after adding SEO metadata, social sharing assets, structured d
 
 ## Current Task
 
-Manually review the Step 4 repository presentation: README content and GitHub issue forms. The implementation remains uncommitted pending acceptance.
+Manually review the open-source licensing update: canonical MIT license, package metadata, README disclosure, and project-brand clarification. The implementation remains uncommitted pending acceptance.
 
 ## About and Privacy
 
