@@ -1,2 +1,3 @@
 User-agent: *
 Allow: /
+Sitemap: https://markdown-toolkit.pages.dev/sitemap.xml

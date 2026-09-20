@@ -45,6 +45,8 @@ Production: https://markdown-toolkit.pages.dev/
 - Cloudflare Pages deployment
 - Compact About menu with accessible About and Privacy dialogs
 - Repository privacy documentation and capability-accurate privacy disclosures
+- Production SEO, Open Graph, Twitter card, and factual SoftwareApplication metadata
+- Local 1200×630 social preview image plus root-only sitemap discovery
 
 ## Repository / Working State
 
@@ -188,10 +190,10 @@ WebLLM and other cross-browser local-AI fallbacks remain deferred.
 
 ## QA / Validation
 
-Latest validation after adding the compact About menu, accessible About/Privacy dialogs, and repository privacy documentation:
+Latest validation after adding SEO metadata, social sharing assets, structured data, and root-page search discovery:
 
-- 31 test files
-- 316 tests passed
+- 32 test files
+- 323 tests passed
 - Lint passed
 - Build passed
 - Format check passed
@@ -200,7 +202,7 @@ Latest validation after adding the compact About menu, accessible About/Privacy 
 
 ## Current Task
 
-Manually verify the compact About menu and About/Privacy dialogs. This step is implemented locally and remains uncommitted pending acceptance.
+Manually verify the production metadata and social preview presentation. This step is implemented locally and remains uncommitted pending acceptance.
 
 ## About and Privacy
 
@@ -209,6 +211,16 @@ Manually verify the compact About menu and About/Privacy dialogs. This step is i
 - Cloudflare Web Analytics is enabled through the deployment platform. The application does not manually embed its beacon and implements no custom feature-click analytics.
 - Document text, filenames, AI prompts, AI results, and editor keystrokes are outside the application's intended analytics scope.
 - Remote Markdown images may contact their hosts, and external links follow destination-site privacy practices.
+
+## SEO and Discovery
+
+- The approved production title is `Markdown Toolkit — Private Markdown Editor`.
+- The approved description is `Write, format, preview, and export Markdown privately in your browser, with Mermaid diagrams and optional Chrome built-in AI.`
+- `https://markdown-toolkit.pages.dev/` is the sole canonical application URL and the only URL in the sitemap because the product has no additional crawlable routes.
+- Open Graph and Twitter cards share a deterministic, locally generated 1200×630 PNG composed from the approved Markdown Toolkit logo and brand colours. It introduces no runtime image dependency.
+- JSON-LD describes only released product capabilities and intentionally includes no ratings, reviews, download counts, unsupported platforms, or invented commercial claims.
+- Cloudflare Web Analytics remains deployment-managed. No analytics script or custom tracking was added to repository source.
+- After manual acceptance, GitHub About should use the approved production description, website URL, and focused Markdown/editor/privacy topics recorded in the implementation report.
 
 ## Development Workflow
 

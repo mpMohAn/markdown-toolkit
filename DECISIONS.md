@@ -222,6 +222,15 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Cloudflare Web Analytics is deployment-managed and must not be manually embedded in application code. No custom interaction tracking, persistent analytics identifiers, document text, filenames, AI prompts, AI results, or editor keystrokes are intentionally sent as analytics data.
 - Privacy language must acknowledge real network boundaries: remote images may contact their hosts, external links leave the application, Cloudflare measures traffic/performance, and Chrome may manage local-AI model resources.
 
+## SEO / Discovery
+
+- The production identity uses the title `Markdown Toolkit — Private Markdown Editor`, the approved capability-accurate description, and one canonical root URL at `https://markdown-toolkit.pages.dev/`.
+- Open Graph and Twitter metadata use one local 1200×630 PNG generated deterministically from approved local branding. Social sharing must not depend on remote fonts, artwork, screenshots, or runtime image services.
+- Structured data is limited to a factual `SoftwareApplication` description of released capabilities. Do not add ratings, reviews, download counts, unsupported platforms, or marketing claims without verifiable product data.
+- The sitemap contains only the canonical root because Markdown Toolkit has no other crawlable routes. Do not invent route URLs for client-side dialog or editor states.
+- Cloudflare Web Analytics remains deployment-managed and must not be embedded in repository metadata or application code.
+- GitHub About description, website, and topics are applied manually after acceptance rather than mutated as part of application implementation.
+
 ## Performance
 
 - Avoid unnecessary dependencies.
