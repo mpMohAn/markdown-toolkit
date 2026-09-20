@@ -28,6 +28,7 @@ Included icons:
 - `format_quote`
 - `format_strikethrough`
 - `image`
+- `info`
 - `light_mode`
 - `link`
 - `tag`

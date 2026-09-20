@@ -2,6 +2,7 @@ import type { EditorView } from '@codemirror/view'
 import { useCallback, useMemo, useState } from 'react'
 import { AICleanup } from '../features/ai/AICleanup'
 import type { AIProvider } from '../features/ai/AIProvider'
+import { AboutMenu } from '../features/about/AboutMenu'
 import type { DocumentSession } from '../features/document/ui/useDocumentLifecycle'
 import { useDocumentLifecycle } from '../features/document/ui/useDocumentLifecycle'
 import { deriveDocumentIdentity } from '../features/document/domain/documentIdentity'
@@ -73,6 +74,7 @@ export function AppShell({ aiProviderFactory }: { aiProviderFactory?: () => AIPr
 									providerFactory={aiProviderFactory}
 								/>
 							) : null}
+							<AboutMenu />
 							<ThemeToggle theme={theme} onToggle={toggleTheme} />
 						</div>
 					</div>

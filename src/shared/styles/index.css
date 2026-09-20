@@ -213,7 +213,10 @@ a {
 	right: 0;
 	left: auto;
 }
-.toolbar-menu-popover button {
+.toolbar-menu-popover button,
+.toolbar-menu-popover a {
+	display: flex;
+	align-items: center;
 	min-height: 28px;
 	padding: 2px 6px;
 	border: 0;
@@ -223,9 +226,12 @@ a {
 	cursor: pointer;
 	font-size: 12px;
 	text-align: left;
+	text-decoration: none;
 }
 .toolbar-menu-popover button:hover,
-.toolbar-menu-popover button:focus-visible {
+.toolbar-menu-popover button:focus-visible,
+.toolbar-menu-popover a:hover,
+.toolbar-menu-popover a:focus-visible {
 	background: var(--color-surface-subtle);
 }
 .toolbar-menu-popover button:disabled {
@@ -235,6 +241,14 @@ a {
 .toolbar-menu-chevron {
 	width: 13px;
 	height: 13px;
+}
+.toolbar-menu-separator {
+	height: var(--border-width);
+	margin: 3px 4px;
+	background: var(--color-border);
+}
+.about-menu-popover {
+	min-width: 12rem;
 }
 .material-icon {
 	display: block;
@@ -297,6 +311,103 @@ a {
 	place-items: center;
 	padding: var(--space-4);
 	background: oklch(0% 0 0 / 45%);
+}
+.app-dialog-backdrop {
+	display: grid;
+	position: fixed;
+	z-index: 20;
+	inset: 0;
+	place-items: center;
+	padding: var(--space-4);
+	background: oklch(0% 0 0 / 45%);
+}
+.app-dialog {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	width: min(40rem, 100%);
+	max-height: min(44rem, calc(100vh - 2rem));
+	max-height: min(44rem, calc(100dvh - 2rem));
+	border: var(--border-width) solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-preview-surface);
+	box-shadow: 0 16px 48px oklch(0% 0 0 / 28%);
+}
+.app-dialog-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-4);
+	padding: var(--space-3) var(--space-4);
+	border-bottom: var(--border-width) solid var(--color-border);
+}
+.app-dialog-header h2 {
+	margin: 0;
+	font-size: 1rem;
+}
+.app-dialog-header button {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: var(--border-width) solid var(--color-border);
+	border-radius: 3px;
+	background: var(--color-surface);
+	color: var(--color-text);
+	cursor: pointer;
+	font-size: 1.2rem;
+	line-height: 1;
+}
+.app-dialog-header button:hover {
+	border-color: var(--color-interaction-hover);
+	background: var(--color-surface-subtle);
+}
+.app-dialog-header button:focus-visible {
+	outline: 1px solid var(--color-focus);
+	outline-offset: -2px;
+}
+.app-dialog-body {
+	min-height: 0;
+	overflow: auto;
+	padding: var(--space-4);
+	font-size: 0.875rem;
+	line-height: 1.55;
+}
+.app-dialog-body > :first-child {
+	margin-top: 0;
+}
+.app-dialog-body > :last-child {
+	margin-bottom: 0;
+}
+.about-details {
+	display: grid;
+	gap: var(--space-1);
+	margin-block: var(--space-4);
+}
+.about-details div {
+	display: grid;
+	grid-template-columns: 5rem minmax(0, 1fr);
+	gap: var(--space-2);
+}
+.about-details dt {
+	color: var(--color-text-muted);
+}
+.about-details dd {
+	margin: 0;
+}
+.privacy-dialog section + section {
+	margin-top: var(--space-4);
+}
+.privacy-dialog h3 {
+	margin: 0 0 var(--space-1);
+	font-size: 0.875rem;
+}
+.privacy-dialog p {
+	margin: 0;
+}
+.privacy-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+	margin-top: var(--space-4);
 }
 .ai-review-dialog {
 	display: grid;

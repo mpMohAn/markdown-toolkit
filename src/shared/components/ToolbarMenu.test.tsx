@@ -114,4 +114,37 @@ describe('ToolbarMenu', () => {
 		addSpy.mockRestore()
 		removeSpy.mockRestore()
 	})
+
+	it('supports safe external links and skips separators during keyboard navigation', async () => {
+		const user = userEvent.setup()
+		render(
+			<ToolbarMenuProvider>
+				<ToolbarMenu
+					id="links"
+					label="Links"
+					triggerContent="Links"
+					items={[
+						{ id: 'action', label: 'Action', onSelect: vi.fn() },
+						{ id: 'separator', type: 'separator' },
+						{
+							id: 'external',
+							label: 'External',
+							href: 'https://example.com/',
+							target: '_blank',
+							rel: 'noopener noreferrer',
+						},
+					]}
+				/>
+			</ToolbarMenuProvider>,
+		)
+
+		const trigger = screen.getByRole('button', { name: 'Links' })
+		trigger.focus()
+		await user.keyboard('{ArrowDown}{ArrowDown}')
+		const link = screen.getByRole('menuitem', { name: 'External' })
+		expect(link).toHaveFocus()
+		expect(link).toHaveAttribute('target', '_blank')
+		expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+		expect(screen.getByRole('separator')).toBeInTheDocument()
+	})
 })

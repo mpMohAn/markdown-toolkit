@@ -1,6 +1,6 @@
 # Markdown Toolkit — Project State
 
-Last updated: 2026-09-14
+Last updated: 2026-09-20
 
 ## Product
 
@@ -43,6 +43,8 @@ Production: https://markdown-toolkit.pages.dev/
 - Accessibility, security, and browser-compatibility hardening
 - Release metadata, favicons, robots.txt
 - Cloudflare Pages deployment
+- Compact About menu with accessible About and Privacy dialogs
+- Repository privacy documentation and capability-accurate privacy disclosures
 
 ## Repository / Working State
 
@@ -186,10 +188,10 @@ WebLLM and other cross-browser local-AI fallbacks remain deferred.
 
 ## QA / Validation
 
-Latest validation after removing synchronized scrolling, adding deterministic formatting and AI writing actions, and implementing lazy preview-only Mermaid rendering:
+Latest validation after adding the compact About menu, accessible About/Privacy dialogs, and repository privacy documentation:
 
-- 30 test files
-- 307 tests passed
+- 31 test files
+- 316 tests passed
 - Lint passed
 - Build passed
 - Format check passed
@@ -198,7 +200,15 @@ Latest validation after removing synchronized scrolling, adding deterministic fo
 
 ## Current Task
 
-Release verification is complete for the accepted feature scope. The current version is ready to commit, push, and verify through the production deployment pipeline.
+Manually verify the compact About menu and About/Privacy dialogs. This step is implemented locally and remains uncommitted pending acceptance.
+
+## About and Privacy
+
+- One compact About control groups product information, privacy details, repository access, issue reporting, and optional GitHub Sponsors support without adding a permanent donation action.
+- The About and Privacy dialogs trap focus, make the application background inert, close with Escape or backdrop activation, and restore focus to the About trigger.
+- Cloudflare Web Analytics is enabled through the deployment platform. The application does not manually embed its beacon and implements no custom feature-click analytics.
+- Document text, filenames, AI prompts, AI results, and editor keystrokes are outside the application's intended analytics scope.
+- Remote Markdown images may contact their hosts, and external links follow destination-site privacy practices.
 
 ## Development Workflow
 

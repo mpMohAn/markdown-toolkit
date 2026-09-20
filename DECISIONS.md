@@ -23,6 +23,8 @@ This file records durable product, architecture, UX, and engineering decisions s
 - The approved compact Markdown Toolkit favicon asset is reused as the toolbar brand; reference-project names, logos, fonts, and utility CSS are not runtime dependencies.
 - Toolbar controls use only individually selected Google Material SVG files bundled under `src/assets/icons/material/` and rendered as current-colour masks. Runtime Google Fonts, icon fonts, icon CDNs, and full icon libraries are prohibited.
 - Text style, Copy, Download, and future toolbar menus share one accessible menu primitive: a single menu may be open, native button triggers expose menu state, arrow/Home/End/Escape behavior is supported, Tab closes naturally, and outside listeners are cleaned up.
+- Product information, privacy, repository, issue reporting, and optional GitHub Sponsors support are grouped under one compact About menu. Support is not a permanent primary toolbar action because editing controls remain the product's visual priority.
+- About and Privacy use accessible modal behavior with initial Close focus, focus containment, inert background content, Escape/backdrop closure, and trigger-focus restoration.
 
 ## Editor / Markdown
 
@@ -217,6 +219,8 @@ Current Firefox line-box explanation involving `.cm-widgetBuffer`, the non-edita
 - Sanitized preview/copy/download should use a consistent rendering/sanitization pipeline.
 - Remote images embedded by the user may still cause the browser to make requests to their remote URLs; this is documented rather than hidden.
 - AI POC must not send Markdown to hosted inference services.
+- Cloudflare Web Analytics is deployment-managed and must not be manually embedded in application code. No custom interaction tracking, persistent analytics identifiers, document text, filenames, AI prompts, AI results, or editor keystrokes are intentionally sent as analytics data.
+- Privacy language must acknowledge real network boundaries: remote images may contact their hosts, external links leave the application, Cloudflare measures traffic/performance, and Chrome may manage local-AI model resources.
 
 ## Performance
 

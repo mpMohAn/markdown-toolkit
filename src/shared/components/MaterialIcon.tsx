@@ -16,6 +16,7 @@ import formatParagraph from '../../assets/icons/material/format_paragraph.svg'
 import formatQuote from '../../assets/icons/material/format_quote.svg'
 import formatStrikethrough from '../../assets/icons/material/format_strikethrough.svg'
 import image from '../../assets/icons/material/image.svg'
+import info from '../../assets/icons/material/info.svg'
 import lightMode from '../../assets/icons/material/light_mode.svg'
 import link from '../../assets/icons/material/link.svg'
 import numbers from '../../assets/icons/material/tag.svg'
@@ -38,6 +39,7 @@ const icons = {
 	formatQuote,
 	formatStrikethrough,
 	image,
+	info,
 	lightMode,
 	link,
 	numbers,

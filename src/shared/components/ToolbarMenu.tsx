@@ -1,6 +1,7 @@
 import {
 	createContext,
 	type KeyboardEvent,
+	type RefObject,
 	type ReactNode,
 	useContext,
 	useEffect,
@@ -25,13 +26,24 @@ export function ToolbarMenuProvider({ children }: { children: ReactNode }) {
 	)
 }
 
-export interface ToolbarMenuItem {
+interface ToolbarMenuActionItem {
+	type?: 'action'
 	id: string
 	label: string
 	disabled?: boolean
 	content?: ReactNode
-	onSelect: () => void | Promise<void>
+	onSelect?: () => void | Promise<void>
+	href?: string
+	target?: '_blank'
+	rel?: 'noopener noreferrer'
 }
+
+interface ToolbarMenuSeparator {
+	type: 'separator'
+	id: string
+}
+
+export type ToolbarMenuItem = ToolbarMenuActionItem | ToolbarMenuSeparator
 
 interface ToolbarMenuProps {
 	id: string
@@ -43,6 +55,7 @@ interface ToolbarMenuProps {
 	className?: string
 	menuClassName?: string
 	restoreTriggerFocusOnSelect?: boolean
+	triggerRef?: RefObject<HTMLButtonElement | null>
 }
 
 export function ToolbarMenu({
@@ -55,6 +68,7 @@ export function ToolbarMenu({
 	className = '',
 	menuClassName = '',
 	restoreTriggerFocusOnSelect = true,
+	triggerRef: externalTriggerRef,
 }: ToolbarMenuProps) {
 	const context = useContext(ToolbarMenuContext)
 	if (!context) throw new Error('ToolbarMenu must be rendered inside ToolbarMenuProvider')
@@ -65,6 +79,10 @@ export function ToolbarMenu({
 	const menuId = `toolbar-menu-${reactId.replaceAll(':', '')}`
 	const rootRef = useRef<HTMLDivElement>(null)
 	const triggerRef = useRef<HTMLButtonElement>(null)
+	const setTriggerRef = (node: HTMLButtonElement | null) => {
+		triggerRef.current = node
+		if (externalTriggerRef) externalTriggerRef.current = node
+	}
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -104,7 +122,7 @@ export function ToolbarMenu({
 		}
 
 		const enabledItems = getEnabledMenuItems(rootRef.current)
-		const currentIndex = enabledItems.indexOf(document.activeElement as HTMLButtonElement)
+		const currentIndex = enabledItems.indexOf(document.activeElement as HTMLElement)
 		if (currentIndex === -1) return
 
 		let nextIndex: number | null = null
@@ -131,7 +149,7 @@ export function ToolbarMenu({
 			onKeyDown={handleKeyDown}
 		>
 			<button
-				ref={triggerRef}
+				ref={setTriggerRef}
 				type="button"
 				className="toolbar-menu-trigger"
 				aria-label={label}
@@ -150,22 +168,47 @@ export function ToolbarMenu({
 					className={`toolbar-menu-popover${menuClassName ? ` ${menuClassName}` : ''}`}
 					role="menu"
 				>
-					{items.map((item) => (
-						<button
-							type="button"
-							role="menuitem"
-							aria-label={item.label}
-							key={item.id}
-							disabled={item.disabled}
-							onClick={() => {
-								if (item.disabled) return
-								close(restoreTriggerFocusOnSelect)
-								void item.onSelect()
-							}}
-						>
-							{item.content ?? item.label}
-						</button>
-					))}
+					{items.map((item) => {
+						if (item.type === 'separator') {
+							return (
+								<div
+									className="toolbar-menu-separator"
+									role="separator"
+									key={item.id}
+								/>
+							)
+						}
+						const content = item.content ?? item.label
+						const activate = () => {
+							if (item.disabled) return
+							close(restoreTriggerFocusOnSelect)
+							void item.onSelect?.()
+						}
+						return item.href ? (
+							<a
+								role="menuitem"
+								aria-label={item.label}
+								key={item.id}
+								href={item.href}
+								target={item.target}
+								rel={item.rel}
+								onClick={activate}
+							>
+								{content}
+							</a>
+						) : (
+							<button
+								type="button"
+								role="menuitem"
+								aria-label={item.label}
+								key={item.id}
+								disabled={item.disabled}
+								onClick={activate}
+							>
+								{content}
+							</button>
+						)
+					})}
 				</div>
 			) : null}
 		</div>
@@ -173,7 +216,5 @@ export function ToolbarMenu({
 }
 
 function getEnabledMenuItems(root: HTMLDivElement | null) {
-	return Array.from(
-		root?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [],
-	)
+	return Array.from(root?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? [])
 }
